@@ -144,16 +144,29 @@ def add_weight_decay(model, weight_decay=1e-5, skip_list=()):
         {'params': decay, 'weight_decay': weight_decay}]
 
 
-def wandb_setup(args):
+# def wandb_setup(args):
 
+#     group = args['network']['which']
+#     wandb.login(key = '03a9f167db51abf8268173ea727fb9ebab486ef4')
+#     run = wandb.init(project='KInterpolator', entity=args['general']['wandb_entity'], group=group, config=args)
+#     # run = wandb.init(project='KInterpolator', entity=args['general']['wandb_entity'], group=group, config=args,log_file_name="debug-core-new.log")
+#     group_id = args['general']['exp_name']
+#     wandb.config.update({'group_id' : f"{group_id}"})
+#     time_now = datetime.now().strftime("%d-%m-%Y_%H-%M-%S")
+#     wandb.run.name = group_id + '_' + time_now
+#     fix_dict_in_wandb_config(wandb)
+import wandb
+from datetime import datetime
+def wandb_setup(args):
     group = args['network']['which']
+    wandb.login(key = '03a9f167db51abf8268173ea727fb9ebab486ef4')
     run = wandb.init(project='KInterpolator', entity=args['general']['wandb_entity'], group=group, config=args)
+    # run = wandb.init(project='KInterpolator', entity=args['general']['wandb_entity'], group=group, config=args,log_file_name="debug-core-new.log")
     group_id = args['general']['exp_name']
     wandb.config.update({'group_id' : f"{group_id}"})
     time_now = datetime.now().strftime("%d-%m-%Y_%H-%M-%S")
     wandb.run.name = group_id + '_' + time_now
     fix_dict_in_wandb_config(wandb)
-
 
 def restore_training(model, optimizer, scheduler, args):
     if os.path.isdir(args.restore_ckpt):

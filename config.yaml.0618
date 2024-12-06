@@ -1,11 +1,11 @@
 general:
   exp_name: Test
   gpus: 3
+  # wandb_entity: 'klkjx'
   wandb_entity: 'itzzy'
   debug: False
   exp_save_root: 'experiments/'
   weights_save_frequency: 20
-  # weights_save_frequency: 30
   acc_rate: &acc_rate [4]
   only_infer: &only_infer False
 
@@ -15,10 +15,7 @@ data:
   train_maps: '/data0/chentao/data/LplusSNet/data/20coil/csm_cine_multicoil_training.npy' # a demo
   val_subjs: '/data0/chentao/data/LplusSNet/data/20coil/k_cine_multicoil_test.npy' # a demo
   val_maps: '/data0/chentao/data/LplusSNet/data/20coil/csm_cine_multicoil_test.npy' # a demo
-  # mask_root: '/data0/huayu/Aluochen/Mypaper5/e_192x18_acs4_R4.mat' # a demo
-  # mask_root: '/data0/zhiyong/code/github/k-gin/masks/VISTA/random_172x232_acs16_3DR4.mat' # a demo
-  # mask_root: '/data0/zhiyong/code/github/k-gin-kv/masks/VISTA/e_192x18_acs4_R4.mat' # a demo
-  mask_root: '/data0/zhiyong/code/github/k-gin/masks/VISTA/e_192x18_acs4_acs_lines4_R8.mat'
+  mask_root: '/data0/huayu/Aluochen/Mypaper5/e_192x18_acs4_R4.mat' # a demo
   data_root: '/data0/chentao/data/LplusSNet/data/20coil/'
   mask_pattern: VISTA
   acc_rate: *acc_rate
@@ -28,16 +25,11 @@ data:
 
 training:
   num_epochs: &epochs 300
-  # num_epochs: &epochs 1
-  # warmup_epoch: 0
-  warmup_epoch: 30
+  warmup_epoch: 4
   batch_size: 1
-  # num_workers: 4
-  num_workers: 2
-  # num_workers: 1
-  restore_ckpt: '/data0/zhiyong/code/github/k-gin/experiments/Test'
+  num_workers: 4
+  restore_ckpt: False
   restore_training: False
-  # restore_training: True
   use_mixed_precision: True  # differ # for complexCNN this must be set False
   optim_weight_decay: 0.05
   
@@ -84,38 +76,4 @@ loss_base: &loss
   k_recon_loss:
     mode: L1
   photometric:
-    mode: L2  # can be charbonnier, L1, L2
-  HDR:
-    eps: *HDR_eps
-  psnr:
-    max_value: on_fly
-    magnitude_psnr: True
-  use_weighting_mask: False
-  cardiac_crop_quantitative_metric: False
-  only_maskout: True
-
-train_loss:
-    <<: *loss
-    which: ['k_recon_loss_combined', 'k_recon_loss', 'photometric']
-    loss_weights: [1,1,1]
-
-
-eval_loss:
-    <<: *loss
-    which: ['k_recon_loss','photometric','psnr']
-    loss_weights: [1, 1, 1]
-
-optimizer:
-  which: AdamW
-  AdamW:
-    lr: &lr 0.0001
-    eps: !!float 1e-8
-    betas: [0.9, 0.95]
-#    weight_decay: 0.00001
-
-scheduler:
-  lr: *lr
-  min_lr: 0.0
-  # warmup_epochs: 5
-  warmup_epochs: 30
-  epochs: *epochs
+    mode: L2  # 

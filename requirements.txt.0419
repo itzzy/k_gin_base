@@ -1,9 +1,8 @@
-##以下安装包需要一个一个安装
-
 h5py==3.7.0
 lpips==0.1.4
 matplotlib==3.6.2
 medutils==0.1.21
+Medutils.egg==info
 numpy==1.23.5
 pandas==1.5.2
 pyexcel_ods==0.6.0

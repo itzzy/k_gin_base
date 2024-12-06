@@ -136,7 +136,6 @@ class KInterpolator(nn.Module):
             nn.init.constant_(m.weight, 1.0)
 
     def encoder(self, kspace, mask):
-        print('encoder-kspace, mask', kspace.shape, mask.shape)
         b, c, h, w = kspace.shape
         kspace = self.patch_embed(kspace)
 
@@ -255,11 +254,9 @@ class KInterpolator(nn.Module):
 
     def forward(self, img, mask):
         # size of input img and mask: [B, T, H, W]
-        # k, m torch.Size([1, 18, 192, 192]) torch.Size([1, 18, 192])
-        # print('k, m', img.shape, mask.shape)
+
         img_orig = torch.view_as_real(img)
-        # mask_orig = mask[..., None].expand_as(img_orig)
-        mask_orig = mask[..., None, None].expand_as(img_orig)  # 将掩码扩展到与图像相同的维度
+        mask_orig = mask[..., None].expand_as(img_orig)
         img = torch.view_as_real(torch.einsum('bthw->btwh', img)).flatten(-2)
         img = torch.einsum('bhwt->bthw', img)
         b, h_2, t, w = img.shape

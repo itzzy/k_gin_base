@@ -1,25 +1,20 @@
+
 general:
   exp_name: Test
-  gpus: 3
-  wandb_entity: 'itzzy'
+  gpus: 0
+  wandb_entity: 'your_wandb_account'
   debug: False
   exp_save_root: 'experiments/'
   weights_save_frequency: 20
-  # weights_save_frequency: 30
   acc_rate: &acc_rate [4]
   only_infer: &only_infer False
 
 data:
   # csv file path
-  train_subjs: '/data0/chentao/data/LplusSNet/data/20coil/k_cine_multicoil_training.npy' # a demo
-  train_maps: '/data0/chentao/data/LplusSNet/data/20coil/csm_cine_multicoil_training.npy' # a demo
-  val_subjs: '/data0/chentao/data/LplusSNet/data/20coil/k_cine_multicoil_test.npy' # a demo
-  val_maps: '/data0/chentao/data/LplusSNet/data/20coil/csm_cine_multicoil_test.npy' # a demo
-  # mask_root: '/data0/huayu/Aluochen/Mypaper5/e_192x18_acs4_R4.mat' # a demo
-  # mask_root: '/data0/zhiyong/code/github/k-gin/masks/VISTA/random_172x232_acs16_3DR4.mat' # a demo
-  # mask_root: '/data0/zhiyong/code/github/k-gin-kv/masks/VISTA/e_192x18_acs4_R4.mat' # a demo
-  mask_root: '/data0/zhiyong/code/github/k-gin/masks/VISTA/e_192x18_acs4_acs_lines4_R8.mat'
-  data_root: '/data0/chentao/data/LplusSNet/data/20coil/'
+  train_subjs_csv: 'dataset/csv_files/CINE2D_train.csv' # a demo
+  val_subjs_csv: 'dataset/csv_files/CINE2D_val.csv' # a demo
+  mask_root: 'masks/' # a demo
+  data_root: 'your_CINE_data_root/'
   mask_pattern: VISTA
   acc_rate: *acc_rate
   dtype: complex128
@@ -28,23 +23,18 @@ data:
 
 training:
   num_epochs: &epochs 300
-  # num_epochs: &epochs 1
-  # warmup_epoch: 0
-  warmup_epoch: 30
+  warmup_epoch: 4
   batch_size: 1
-  # num_workers: 4
-  num_workers: 2
-  # num_workers: 1
-  restore_ckpt: '/data0/zhiyong/code/github/k-gin/experiments/Test'
+  num_workers: 4
+  restore_ckpt: False
   restore_training: False
-  # restore_training: True
   use_mixed_precision: True  # differ # for complexCNN this must be set False
   optim_weight_decay: 0.05
   
 network:
   which: KInterpolator
   KInterpolator:
-    img_size: [18,192,192]
+    img_size: [16,156,192]
     patch_size: 4
     embed_dim: 512
     depth: 12
@@ -116,6 +106,5 @@ optimizer:
 scheduler:
   lr: *lr
   min_lr: 0.0
-  # warmup_epochs: 5
-  warmup_epochs: 30
+  warmup_epochs: 5
   epochs: *epochs

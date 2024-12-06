@@ -6,7 +6,6 @@ import os
 from utils import wandb_setup, dict2obj
 from trainer import TrainerKInterpolator
 
-
 parser = argparse.ArgumentParser()
 parser.add_argument('--config', default=None, help='config file (.yml) containing the hyper-parameters for inference.')
 parser.add_argument('--debug', action='store_true', help='if true, model will not be logged and saved')
@@ -43,6 +42,4 @@ if __name__ == '__main__':
 
     config.general.debug = args.debug
     trainer = TrainerKInterpolator(config)
-    print("Starting trainer run method...")
     trainer.run()
-    print("Trainer run method completed.")
