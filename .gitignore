@@ -63,7 +63,9 @@ out_*
 output_kv_*
 output*
 # masks/
-
+models/
+cineJENSE/
+dataset/dataloader.py.0618
 
 # Django stuff:
 *.log
@@ -72,6 +74,7 @@ db.sqlite3
 db.sqlite3-journal
 nohup.out
 output.log
+log_*
 
 
 # Flask stuff:

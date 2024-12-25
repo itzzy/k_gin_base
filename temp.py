@@ -171,33 +171,33 @@ anim.save('test0F.gif', writer='imagemagick')
 #    return mask
 #
 #
-#def get_cine_mask(acc, acs_lines, x=232, y=256):
-#    rows = y-acs_lines
+def get_cine_mask(acc, acs_lines, x=232, y=256):
+   rows = y-acs_lines
+
+   matrix = np.zeros((rows, x))
+
+   ones_per_column = rows//acc #y//acc-acs_lines
+
+   first_column = np.zeros(rows)
+   indices = np.linspace(0, rows - 1, ones_per_column, dtype=int)
+   first_column[indices] = 1
+
+   for j in range(x):
+       matrix[:, j] = np.roll(first_column, j)
+       
+   insert_rows = np.ones((acs_lines, x))
+   new_matrix = np.insert(matrix, rows//2, insert_rows, axis=0)
+   print(new_matrix)
+#    mask = np.transpose(mask, (0, 2, 1))
 #
-#    matrix = np.zeros((rows, x))
-#
-#    ones_per_column = rows//acc #y//acc-acs_lines
-#
-#    first_column = np.zeros(rows)
-#    indices = np.linspace(0, rows - 1, ones_per_column, dtype=int)
-#    first_column[indices] = 1
-#
-#    for j in range(x):
-#        matrix[:, j] = np.roll(first_column, j)
-#        
-#    insert_rows = np.ones((acs_lines, x))
-#    new_matrix = np.insert(matrix, rows//2, insert_rows, axis=0)
-#    print(new_matrix)
-##    mask = np.transpose(mask, (0, 2, 1))
-##
-#    mask_datadict = {'mask': np.squeeze(new_matrix)}
-###    scio.savemat('random_368x368_mask4x_8line.mat', mask_datadict)  #
-#    scio.savemat('/data0/huayu/Aluochen/Mypaper5/e_192x18_acs4_R4.mat', mask_datadict)
-#
-#
-#
-#def main():
-#    get_cine_mask(acc=4, acs_lines=4, x=18, y=192)
+   mask_datadict = {'mask': np.squeeze(new_matrix)}
+##    scio.savemat('random_368x368_mask4x_8line.mat', mask_datadict)  #
+   scio.savemat('/data0/huayu/Aluochen/Mypaper5/e_192x18_acs4_R4.mat', mask_datadict)
+
+
+
+def main():
+   get_cine_mask(acc=4, acs_lines=4, x=18, y=192)
 #
 #if __name__ == '__main__':
 #    sys.exit(main())

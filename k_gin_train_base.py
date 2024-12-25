@@ -23,7 +23,7 @@ import torch.distributed as dist
 # os.environ['CUDA_VISIBLE_DEVICES'] = '5,7'
 # os.environ['CUDA_VISIBLE_DEVICES'] = '4'
 # os.environ['CUDA_VISIBLE_DEVICES'] = '0,1,5,7' 0-5(nvidia--os) 2-6 3-7
-os.environ['CUDA_VISIBLE_DEVICES'] = '5,6'
+os.environ['CUDA_VISIBLE_DEVICES'] = '2,3'
 # os.environ['CUDA_VISIBLE_DEVICES'] = '5,7'
 # os.environ['CUDA_VISIBLE_DEVICES'] = '4,5,7'
 
