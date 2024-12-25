@@ -1,5 +1,5 @@
 general:
-  exp_name: Test_k_gin
+  exp_name: test_dcrnn_test_3
   gpus: 3
   wandb_entity: 'itzzy'
   debug: False
@@ -7,6 +7,7 @@ general:
   weights_save_frequency: 20
   # weights_save_frequency: 30
   acc_rate: &acc_rate [4]
+  # acc_rate: 4
   only_infer: &only_infer False
 
 data:
@@ -22,8 +23,9 @@ data:
   # mask_root: '/data0/huayu/Aluochen/Mypaper5/e_192x18_acs4_R4.mat' # a demo
   # mask_root: '/data0/zhiyong/code/github/k-gin/masks/VISTA/random_172x232_acs16_3DR4.mat' # a demo
   # mask_root: '/data0/zhiyong/code/github/k-gin-kv/masks/VISTA/e_192x18_acs4_R4.mat' # a demo
+  mask_root: '/nfs/zzy/code/k_gin_base/masks/VISTA/e_192x18_acs4_R4.mat'
   # mask_root: '/data0/zhiyong/code/github/k-gin/masks/VISTA/e_192x18_acs4_acs_lines4_R8.mat'
-  mask_root: '/nfs/zzy/code/k_gin_base/masks/VISTA/e_192x18_acs4_acs_lines4_R6.mat'
+  # mask_root: '/nfs/zzy/code/k_gin_base/masks/VISTA/e_192x18_acs4_acs_lines4_R6.mat'
   data_root: '/nfs/zzy/data/k_gin_data'
   mask_pattern: VISTA
   acc_rate: *acc_rate
@@ -32,53 +34,59 @@ data:
   only_infer: *only_infer
 
 training:
-  num_epochs: &epochs 300
-  # num_epochs: &epochs 1
-  # warmup_epoch: 0
-  warmup_epoch: 30
-  batch_size: 1
-  # num_workers: 4
+  # num_epochs: &epochs 300
+  num_epochs: &epochs 1
+  warmup_epoch: 0
+  # warmup_epoch: 30
+  batch_size: 2
   num_workers: 2
+  # num_workers: 2
   # num_workers: 1
-  restore_ckpt: '/nfs/zzy/code/k_gin_base/experiments/Test'
+  restore_ckpt: '/nfs/zzy/code/k_gin_base/experiments/test_dcrnn_test_3'
   restore_training: False
   # restore_training: True
   use_mixed_precision: True  # differ # for complexCNN this must be set False
   optim_weight_decay: 0.05
-  
+
+#     # def __init__(self, n_ch=2, nf=64, ks=3, nc=5, nd=5):
 network:
-  which: KInterpolator
-  KInterpolator:
-    img_size: [18,192,192]
-    patch_size: 4
-    embed_dim: 512
-    depth: 12
-    num_heads: 16
-    decoder_embed_dim: 512
-    decoder_depth: 8
-    decoder_num_heads: 16
-    mlp_ratio: 4.
-    single_coil: True
+  which: CRNN_MRI
+  CRNN_MRI:
+    n_ch: 2
+    nf: 64
+    ks: 3
+    nc: 5
+    nd: 5
+    # img_size: [18,192,192]
+    # patch_size: 4
+    # embed_dim: 512
+    # depth: 12
+    # num_heads: 16
+    # decoder_embed_dim: 512
+    # decoder_depth: 8
+    # decoder_num_heads: 16
+    # mlp_ratio: 4.
+    # single_coil: True
 
-    in_chans: 384
-    norm_layer: nn.LayerNorm
-    act_layer: nn.GELU
-    ref_repl_prior_denoiser: True
+    # in_chans: 384
+    # norm_layer: nn.LayerNorm
+    # act_layer: nn.GELU
+    # ref_repl_prior_denoiser: True
 
-    xt_y_tuning: True
-    xt_y_embed_dim: 512
-    xt_y_depth: 8
-    xt_y_num_heads: 8
+    # xt_y_tuning: True
+    # xt_y_embed_dim: 512
+    # xt_y_depth: 8
+    # xt_y_num_heads: 8
 
-    yt_x_tuning: True
-    yt_x_embed_dim: 512
-    yt_x_depth: 8
-    yt_x_num_heads: 8
+    # yt_x_tuning: True
+    # yt_x_embed_dim: 512
+    # yt_x_depth: 8
+    # yt_x_num_heads: 8
 
-    xy_t_patch_tuning: True
-    xy_t_patch_embed_dim: 512
-    xy_t_patch_depth: 8
-    xy_t_patch_num_heads: 8
+    # xy_t_patch_tuning: True
+    # xy_t_patch_embed_dim: 512
+    # xy_t_patch_depth: 8
+    # xy_t_patch_num_heads: 8
 
 loss_base: &loss
   k_recon_loss_combined:

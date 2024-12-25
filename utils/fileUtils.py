@@ -76,7 +76,12 @@ anim.save('output_kgin_1122_80.gif', writer='imagemagick')
 # /data0/zhiyong/code/github/k-gin/out_1201_2.npy
 
 # /data0/zhiyong/code/github/k-gin/out_1201_2.npy
-data = np.load('/data0/zhiyong/code/github/k-gin/out_1201_2.npy')
+# /nfs/zzy/code/k_gin_base/output/r8/out_1209r_8.npy
+# data = np.load('/data0/zhiyong/code/github/k-gin/out_1201_2.npy')
+# data = np.load('/nfs/zzy/code/k_gin_base/output/r8/out_1209r_8.npy')
+data = np.load('/nfs/zzy/code/k_gin_base/output/r6/out_1206_1.npy')
+
+
 
 #csm = np.load('/data0/chentao/data/LplusSNet/data/20coil/csm_cine_multicoil_test.npy')
 # csm = np.load('/data0/chentao/data/LplusSNet/data/20coil/csm_cine_multicoil_test.npy')
@@ -132,7 +137,12 @@ anim = FuncAnimation(plt.figure(), animate, frames=len(img_brightened), interval
 # /data0/zhiyong/code/github/k-gin/out_1201.npy
 # anim.save('output-kgin-out_1201_2.gif', writer='imagemagick')
 # /data0/zhiyong/code/github/k-gin/out_1201_2.npy
-anim.save('output-kgin-out_1201_3.gif', writer='imagemagick')
+# anim.save('output-kgin-out_1201_3.gif', writer='imagemagick')
+# 1209r_8
+# anim.save('output-kgin_1209r_8.gif', writer='imagemagick')
+anim.save('output-kgin_1206r_6.gif', writer='imagemagick')
+
+
 
 
 

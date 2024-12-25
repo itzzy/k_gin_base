@@ -267,8 +267,15 @@ class KInterpolator(nn.Module):
         mask = mask.flatten(1, -1)
 
         latent, ids_restore = self.encoder(img, mask)
+        # forward-latent: torch.Size([1, 631, 512])
+        print('forward-latent:',latent.shape)
+        # forward-latent-dtype: torch.float32
+        print('forward-latent-dtype:',latent.dtype)
         pred, latent_decoder = self.decoder(latent, ids_restore, mask)
-
+        # forward-pred: torch.Size([1, 3456, 384])
+        print('forward-pred:',pred.shape)
+        # forward-pred-dtype: torch.float32
+        print('forward-pred-dtype:',pred.dtype)
         pred = pred.reshape((b, t, w, int(h_2/2), 2))
         pred = torch.einsum('btwhc->bthwc', pred)
         pred_list = [pred]
@@ -295,6 +302,10 @@ class KInterpolator(nn.Module):
         if self.ref_repl_prior_denoiser: pred_t3[torch.where(mask_orig==1)] = img_orig[torch.where(mask_orig==1)]
 
         k_recon_complex = torch.view_as_complex(pred_t3)
+        # forward-k_recon_complex: torch.Size([1, 18, 192, 192])
+        print('forward-k_recon_complex:',k_recon_complex.shape)
+        # forward-k_recon_complex-dtype: torch.complex64
+        print('forward-k_recon_complex-dtype:',k_recon_complex.dtype)
         im_recon = ifft2c(k_recon_complex.to(torch.complex64))
 
         return pred_list, im_recon

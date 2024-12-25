@@ -47,7 +47,7 @@ class TrainerAbstract:
         # config.general.debug: False
         self.config = config.general
         self.debug = config.general.debug
-        if self.debug: config.general.exp_name = 'Test'
+        if self.debug: config.general.exp_name = 'Test_k_gin'
         self.experiment_dir = os.path.join(config.general.exp_save_root, config.general.exp_name)
         pathlib.Path(self.experiment_dir).mkdir(parents=True, exist_ok=True)
         # print('pathlib.Path')
@@ -84,7 +84,7 @@ class TrainerAbstract:
         train_sampler = torch.utils.data.distributed.DistributedSampler(train_ds)
         test_sampler = torch.utils.data.distributed.DistributedSampler(test_ds)
         self.train_loader = torch.utils.data.DataLoader(dataset=train_ds, num_workers=config.training.num_workers, drop_last=False,batch_size=config.training.batch_size, sampler=train_sampler)
-        self.test_loader = DataLoader(dataset=test_ds, num_workers=0, drop_last=False, batch_size=1, sampler=test_sampler)
+        self.test_loader = DataLoader(dataset=test_ds, num_workers=2, drop_last=False, batch_size=1, sampler=test_sampler)
 
         # 重新定义模型之前
         torch.cuda.empty_cache()
@@ -273,11 +273,12 @@ class TrainerKInterpolator(TrainerAbstract):
             #     f"time: {elapsed_time / (i + 1):.4f} data: 0.0002 max mem: {max_memory:.0f}"
             # )
             # Log the detailed information
-            print(
-                f"Epoch: [{epoch}] [{i + 1}/{len(self.train_loader)}] eta: {str(eta)} "
-                f"lr: {current_lr:.6f} loss: {loss_reduced.item():.4f} ({running_loss / (i + 1):.4f}) "
-                f"time: {elapsed_time / (i + 1):.4f} data: 0.0002 max mem: {max_memory:.0f}"
-            )
+            if i % 50 ==0:
+                print(
+                    f"Epoch: [{epoch}] [{i + 1}/{len(self.train_loader)}] eta: {str(eta)} "
+                    f"lr: {current_lr:.6f} loss: {loss_reduced.item():.4f} ({running_loss / (i + 1):.4f}) "
+                    f"time: {elapsed_time / (i + 1):.4f} data: 0.0002 max mem: {max_memory:.0f}"
+                )
             
             torch.cuda.empty_cache()
             self.logger.update_metric_item('train/k_recon_loss', ls['k_recon_loss'].item()/len(self.train_loader))
@@ -331,7 +332,7 @@ class TrainerKInterpolator(TrainerAbstract):
                 self.logger.update_metric_item('val/psnr', ls['psnr'].item()/len(self.test_loader))
             print('...', out.shape, out.dtype)
             out = out.cpu().data.numpy()
-            np.save('out_1201.npy', out)
+            np.save('out_kgin_1209.npy', out)
             print('save success......')
             
             # 使用 reduce 将每个进程的损失值聚合到主进程

@@ -9,7 +9,58 @@ from scipy.io import savemat
 from scipy.ndimage.morphology import distance_transform_edt
 from utils.mri_related import fft2c, MulticoilAdjointOp
 
+'''
+这段代码处理多通道k空间数据，进行图像重建，并生成各种掩码用于图像处理或模型训练。 
+它使用了多种库，包括 scipy.io, h5py, numpy, torch 和
+一些自定义函数 (例如 MulticoilAdjointOp, fft2c)。
+代码中的一些函数 (例如 get_data) 没有给出定义，需要根据上下文补充。 
+tracemalloc 可以用来分析这段代码中 ToTorchIO 函数的内存使用情况，特别是当处理大规模数据时。
+注意观察 torch.from_numpy 的内存占用。
+'''
 
+'''
+img = MulticoilAdjointOp(...): 这是核心重建步骤，将多通道k空间数据和线圈灵敏度图 (coilmaps) 转换为单通道图像。
+center=True 可能表示中心化处理，coil_axis=-4 指定线圈维度，channel_dim_defined=False 可能表示通道维度未明确定义。
+img /= img.abs().max(): 将图像的像素值归一化到最大绝对值为1。
+kspace = fft2c(img): 将图像转换回k空间。fft2c 很可能是二维快速傅里叶变换的自定义函数。
+
+这行代码的核心是调用了一个名为 MulticoilAdjointOp 的函数或类，它执行多通道磁共振图像(MRI)重建。让我们逐部分解读：
+
+- MulticoilAdjointOp(center=True, coil_axis=-4, channel_dim_defined=False)**:**  这部分创建了一个 MulticoilAdjointOp 对象，并设置了三个参数：
+
+    * center=True:  这表示重建过程中会进行中心化处理。在 MRI 数据处理中，中心化通常指将k 空间数据或图像数据移到其中心位置，
+    这有助于减少重建伪影。
+
+    * coil_axis=-4:  这指定了线圈维度的索引。  -4 表示线圈维度是张量的倒数第四个维度。 
+    这取决于输入张量的形状，例如，如果 kspace 的形状是 (batch_size, channels, height, width, complex)，
+    那么 coil_axis=-4 就表示 channels 维度。  不同的 MRI 数据格式可能会有不同的维度顺序，因此这个参数非常重要。
+
+    * channel_dim_defined=False:  这表示输入数据中线圈维度是否已经明确定义。如果设置为 True，
+    则 MulticoilAdjointOp  会假设输入数据已经按照特定的方式组织了线圈维度；
+    如果设置为 False，则 MulticoilAdjointOp  需要根据其他信息（例如，coilmaps）来确定线圈维度。
+
+
+- (kspace, torch.ones_like(kspace), coilmaps)**:**  这是对 MulticoilAdjointOp 对象的调用，它接受三个参数作为输入：
+
+    * kspace:  这是多通道 k 空间数据，它是重建的输入。  k 空间数据是 MRI 扫描的原始数据，它包含了图像的频率信息。
+
+    * torch.ones_like(kspace):  这创建一个与 kspace 形状相同的全1张量。 
+    这个张量很可能用作权重或掩码，在重建过程中对不同位置的 k 空间数据赋予不同的权重。
+    具体作用取决于 MulticoilAdjointOp 的内部实现。
+
+    * coilmaps:  这是线圈灵敏度图。线圈灵敏度图描述了每个线圈在图像不同位置的灵敏度，
+    它用于补偿不同线圈对图像信号的贡献差异，从而提高重建图像的质量。
+
+
+- img = ...**:**  最终，MulticoilAdjointOp 的输出赋值给变量 img。 
+img  是一个单通道的重建图像，它代表了从多通道 k 空间数据中重建出来的图像。
+总结:
+这行代码使用 MulticoilAdjointOp 函数或类对多通道 k 空间数据进行重建，得到单通道图像。  
+它利用线圈灵敏度图 (coilmaps) 来补偿不同线圈的灵敏度差异，并使用中心化处理来减少重建伪影。  
+torch.ones_like(kspace) 的作用需要根据 MulticoilAdjointOp 的具体实现来确定，它可能用于加权或掩码操作。 
+这行代码是多通道 MRI 重建中的一个关键步骤。  
+MulticoilAdjointOp 很可能是一个基于某种算法（例如，最小二乘法或压缩感知）实现的自定义函数或类。
+'''
 def multicoil2single(kspace, coilmaps):
     img = MulticoilAdjointOp(center=True, coil_axis=-4, channel_dim_defined=False)(kspace, torch.ones_like(kspace), coilmaps)
     img /= img.abs().max()
