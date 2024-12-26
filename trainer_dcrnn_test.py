@@ -22,6 +22,8 @@ from utils.dnn_io import from_tensor_format
 from torch.autograd import Variable
 from utils.metric import complex_psnr
 
+from torch.utils.tensorboard import SummaryWriter
+
 import numpy as np
 import datetime
 
@@ -33,7 +35,7 @@ os.environ['PYTORCH_CUDA_ALLOC_CONF'] = 'expandable_segments:True'
 # os.environ["CUDA_VISIBLE_DEVICES"] = "3" #,0,1,2,4,5,6,7
 # os.environ['CUDA_VISIBLE_DEVICES'] = '1'  # 指定使用 GPU 1 和 GPU 4
 # os.environ['CUDA_VISIBLE_DEVICES'] = '6'  # 指定使用 GPU 1 和 GPU 4
-os.environ['CUDA_VISIBLE_DEVICES'] = '2'  # 指定使用 GPU 1 和 GPU 4
+os.environ['CUDA_VISIBLE_DEVICES'] = '3'  # 指定使用 GPU 1 和 GPU 4
 
 # 设置环境变量 CUDA_VISIBLE_DEVICES  0-5(nvidia--os) 2-6 3-7
 # os.environ['CUDA_VISIBLE_DEVICES'] = '0,1'  # 指定使用 GPU 1 和 GPU 4
@@ -53,7 +55,7 @@ class TrainerAbstract:
         super().__init__()
         self.config = config.general
         self.debug = config.general.debug
-        if self.debug: config.general.exp_name = 'test_dcrnn'
+        if self.debug: config.general.exp_name = 'test_dcrnn_test'
         self.experiment_dir = os.path.join(config.general.exp_save_root, config.general.exp_name)
         pathlib.Path(self.experiment_dir).mkdir(parents=True, exist_ok=True)
 
@@ -69,8 +71,8 @@ class TrainerAbstract:
         
 
         # data
-        train_ds = CINE2DT(config=config.data, mode='train')
-        # train_ds = CINE2DT(config=config.data, mode='val')
+        # train_ds = CINE2DT(config=config.data, mode='train')
+        train_ds = CINE2DT(config=config.data, mode='val')
         test_ds = CINE2DT(config=config.data, mode='val')
         self.train_loader = DataLoader(dataset=train_ds, num_workers=config.training.num_workers, drop_last=False,
                                        pin_memory=True, batch_size=config.training.batch_size, shuffle=True)
@@ -138,6 +140,8 @@ class TrainerKInterpolator(TrainerAbstract):
         self.eval_criterion = CriterionKGIN(config.eval_loss)
         self.logger = Logger()
         self.scheduler_info = config.scheduler
+        # Initialize SummaryWriter
+        self.writer = SummaryWriter(log_dir=config.general.tensorboard_log_dir)
 
     def run(self):
         print("Starting run method")
@@ -155,6 +159,7 @@ class TrainerKInterpolator(TrainerAbstract):
                 self.train_one_epoch(epoch)
             self.run_test()
             self.logger.update_metric_item('train/epoch_runtime', (time.time() - start_time)/60)
+            print(f"Epoch {epoch+1}/{self.num_epochs} 完成，耗时：{(time.time() - start_time)/60:.2f} 分钟")
             # if epoch % self.config.weights_save_frequency == 0 and not self.debug and epoch > 150:
             if epoch % self.config.weights_save_frequency == 0:
                 self.save_model(epoch)
@@ -162,6 +167,7 @@ class TrainerKInterpolator(TrainerAbstract):
                 self.save_model(epoch)
             if not self.debug:
                 self.logger.wandb_log(epoch)
+        self.writer.close()
 
     def train_one_epoch(self, epoch):
         # start_time = time.time()
@@ -240,9 +246,16 @@ class TrainerKInterpolator(TrainerAbstract):
                 running_loss += loss.item()
             epoch_loss = running_loss / train_batches if train_batches > 0 else 0
             # 判断当前 epoch 是否是 50 的倍数，如果是则打印平均损失
-            if i % 50 == 0:
+            if i % 20 == 0:
                 print(f'Epoch {i} - Average Training Loss: {epoch_loss}')
-                
+            
+            # 将损失写入TensorBoard
+            # 注意：通常我们会在每个epoch结束时记录损失，但这里您可以根据需要调整
+            self.writer.add_scalar('Training/Loss', loss.item(), epoch * len(self.train_loader) + i)
+            self.logger.update_metric_item('train/recon_loss', loss.item())
+            self.logger.update_metric_item('train/recon_loss_avg', loss.item()/len(self.train_loader))
+
+
             #     sampling_mask = sampling_mask.repeat_interleave(ref_kspace.shape[2], 2)
             #     # train_one_epoch-sampling_mask-2 torch.Size([4, 18, 36864])
             #     print('train_one_epoch-sampling_mask-2', sampling_mask.shape)
@@ -277,7 +290,8 @@ class TrainerKInterpolator(TrainerAbstract):
             # torch.cuda.empty_cache()
             # self.logger.update_metric_item('train/k_recon_loss', ls['k_recon_loss'].item()/len(self.train_loader))
             # self.logger.update_metric_item('train/recon_loss', ls['photometric'].item()/len(self.train_loader))
-
+        # 在每个epoch结束时记录平均损失
+        self.writer.add_scalar('Training/Average_Loss', epoch_loss, epoch)
     def run_test(self):
         model_name = 'dc_rnn'
         # Configure directory info
@@ -294,6 +308,8 @@ class TrainerKInterpolator(TrainerAbstract):
         test_batches = 0
         running_test_loss = 0.0
         epoch_test_loss = 0.0
+        im_recon_list = []  # 用于存储 im_recon 张量
+
 
         self.network.eval()
         with torch.no_grad():
@@ -317,6 +333,9 @@ class TrainerKInterpolator(TrainerAbstract):
 
                 # 网络预测
                 im_recon = self.network(im_u, k_u, mask, test=False)
+                print('run_test-im_recon-shape:',im_recon.shape)
+                print('run_test-im_recon-dtype:',im_recon.dtype)
+                im_recon_list.append(im_recon.cpu().data.numpy())  # 将 im_recon 转换为 numpy 数组并添加到列表中
 
                 # 计算损失
                 loss = criterion(im_recon, gnd)
@@ -355,6 +374,11 @@ class TrainerKInterpolator(TrainerAbstract):
             print(f"Final Test Loss: {epoch_test_loss:.6f}")
             print(f"Base PSNR: {base_psnr:.6f}")
             print(f"Test PSNR: {test_psnr:.6f}")
+            
+            # 将 im_recon 保存为.npy 文件
+            im_recon_array = np.concatenate(im_recon_list, axis=0)  # 拼接所有 im_recon 张量
+            np.save(join(self.save_dir, 'im_recon.npy'), im_recon_array)  # 保存为.npy 文件
+
 
         # 保存图像和模型
         i = 0

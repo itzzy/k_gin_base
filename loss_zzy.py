@@ -67,17 +67,17 @@ class CriterionKGIN(CriterionBase, torch.nn.Module):
 
     def forward(self, k_pred, k_ref, im_pred, im_ref, kspace_mask, mode='train'):
         loss_dict = {}
-        # print(f"forward Length of k_pred-1: {len(k_pred)}")
-        # print(f"forward Length of k_loss_list-1: {len(self.k_loss_list)}")
+        print(f"forward Length of k_pred-1: {len(k_pred)}")
+        print(f"forward Length of k_loss_list-1: {len(self.k_loss_list)}")
         
         # 动态调整 k_pred 的长度
         if len(k_pred) < len(self.k_loss_list):
-            # print(f"Warning: k_pred length ({len(k_pred)}) is shorter than k_loss_list ({len(self.k_loss_list)}). Padding k_pred.")
+            print(f"Warning: k_pred length ({len(k_pred)}) is shorter than k_loss_list ({len(self.k_loss_list)}). Padding k_pred.")
             padding = [k_pred[-1].clone().unsqueeze(0) for _ in range(len(self.k_loss_list) - len(k_pred))]
             k_pred = torch.cat([k_pred] + padding, dim=0)
 
-        # print(f"forward Length of k_pred-2: {len(k_pred)}")
-        # print(f"forward Length of k_loss_list-2: {len(self.k_loss_list)}")
+        print(f"forward Length of k_pred-2: {len(k_pred)}")
+        print(f"forward Length of k_loss_list-2: {len(self.k_loss_list)}")
         
         if mode == 'train': 
             assert len(k_pred) == len(self.k_loss_list)
@@ -87,12 +87,12 @@ class CriterionKGIN(CriterionBase, torch.nn.Module):
             im_ref = im_ref.to(im_pred.device)
 #         Shape of im_pred: torch.Size([2, 192, 192, 18]), Shape of im_ref: torch.Size([2, 18, 192, 192])
 # Shape of im_pred_adjusted: torch.Size([2, 18, 192, 192]), Shape of im_ref_adjusted: torch.Size([2, 192, 192, 18])
-        # print(f"Shape of im_pred: {im_pred.shape}, Shape of im_ref: {im_ref.shape}")
+        print(f"Shape of im_pred: {im_pred.shape}, Shape of im_ref: {im_ref.shape}")
         # 调整 im_pred 的维度顺序，使其与 im_ref 一致
         im_pred_adjusted = im_pred.permute(0, 3, 2, 1)  # 从 [batch_size, channels, height, width] 变为 [batch_size, height, width, channels]
         # im_ref_adjusted = im_ref.permute(0, 2, 3, 1)  # 从 [batch_size, channels, height, width] 变为 [batch_size, height, width, channels]
         im_ref_adjusted = im_ref # 从 [batch_size, channels, height, width] 变为 [batch_size, height, width, channels]
-        # print(f"Shape of im_pred_adjusted: {im_pred_adjusted.shape}, Shape of im_ref_adjusted: {im_ref_adjusted.shape}")
+        print(f"Shape of im_pred_adjusted: {im_pred_adjusted.shape}, Shape of im_ref_adjusted: {im_ref_adjusted.shape}")
 
         for loss_name, loss_weight, loss_term in zip(self.loss_names, self.loss_weights, self.loss_list):
             if loss_name == 'k_recon_loss_combined':
@@ -102,7 +102,7 @@ class CriterionKGIN(CriterionBase, torch.nn.Module):
                     pred = pred.unsqueeze(0)  # 添加 batch_size 维度
                     pred = pred.permute(0, 3, 1, 2)  # 调整维度顺序
                     # Shape of pred: torch.Size([1, 18, 192, 192]), Shape of k_ref: torch.Size([2, 18, 192, 192])
-                    # print(f"Shape of pred: {pred.shape}, Shape of k_ref: {k_ref.shape}")
+                    print(f"Shape of pred: {pred.shape}, Shape of k_ref: {k_ref.shape}")
                     # 确保 pred 和 k_ref 的形状一致
                     if pred.shape != k_ref.shape:
                         pred = pred.expand_as(k_ref)  # 将 pred 的形状扩展为与 k_ref 相同
@@ -119,7 +119,7 @@ class CriterionKGIN(CriterionBase, torch.nn.Module):
                 loss_dict[loss_name] = loss_weight * loss
             else:
                 # 调整 im_pred 和 im_ref 的维度顺序
-                # print(f"Shape of im_pred_adjusted: {im_pred_adjusted.shape}, Shape of im_ref_adjusted: {im_ref_adjusted.shape}")
+                print(f"Shape of im_pred_adjusted: {im_pred_adjusted.shape}, Shape of im_ref_adjusted: {im_ref_adjusted.shape}")
                 loss = loss_term(im_pred_adjusted, im_ref_adjusted)
                 loss_dict[loss_name] = loss_weight * loss
         return loss_dict
