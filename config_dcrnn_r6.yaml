@@ -42,7 +42,7 @@ training:
   num_epochs: &epochs 300
   # num_epochs: &epochs 1
   # warmup_epoch: 0
-  warmup_epoch: 20
+  warmup_epoch: 30
   batch_size: 8
   num_workers: 2
   # num_workers: 2
