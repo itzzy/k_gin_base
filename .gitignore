@@ -65,6 +65,8 @@ output*
 # masks/
 models/
 cineJENSE/
+runs/
+log/
 dataset/dataloader.py.0618
 
 # Django stuff:

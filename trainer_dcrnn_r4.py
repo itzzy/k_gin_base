@@ -36,7 +36,7 @@ os.environ['PYTORCH_CUDA_ALLOC_CONF'] = 'expandable_segments:True'
 # os.environ["CUDA_VISIBLE_DEVICES"] = "3" #,0,1,2,4,5,6,7
 # os.environ['CUDA_VISIBLE_DEVICES'] = '1'  # 指定使用 GPU 1 和 GPU 4
 # os.environ['CUDA_VISIBLE_DEVICES'] = '6'  # 指定使用 GPU 1 和 GPU 4
-os.environ['CUDA_VISIBLE_DEVICES'] = '1'  # 指定使用 GPU 1 和 GPU 4
+# os.environ['CUDA_VISIBLE_DEVICES'] = '1'  # 指定使用 GPU 1 和 GPU 4
 
 # 设置环境变量 CUDA_VISIBLE_DEVICES  0-5(nvidia--os) 2-6 3-7
 # os.environ['CUDA_VISIBLE_DEVICES'] = '0,1'  # 指定使用 GPU 1 和 GPU 4
@@ -56,7 +56,7 @@ class TrainerAbstract:
         super().__init__()
         self.config = config.general
         self.debug = config.general.debug
-        if self.debug: config.general.exp_name = 'test_dcrnn_test_3'
+        if self.debug: config.general.exp_name = 'test_dcrnn_r4'
         self.experiment_dir = os.path.join(config.general.exp_save_root, config.general.exp_name)
         pathlib.Path(self.experiment_dir).mkdir(parents=True, exist_ok=True)
 
@@ -72,8 +72,8 @@ class TrainerAbstract:
         
 
         # data
-        # train_ds = CINE2DT(config=config.data, mode='train')
-        train_ds = CINE2DT(config=config.data, mode='val')
+        train_ds = CINE2DT(config=config.data, mode='train')
+        # train_ds = CINE2DT(config=config.data, mode='val')
         test_ds = CINE2DT(config=config.data, mode='val')
         self.train_loader = DataLoader(dataset=train_ds, num_workers=config.training.num_workers, drop_last=False,
                                        pin_memory=True, batch_size=config.training.batch_size, shuffle=True)
@@ -187,20 +187,20 @@ class TrainerKInterpolator(TrainerAbstract):
             kspace,coilmaps,sampling_mask = kspace.to(device), coilmaps.to(device), sampling_mask.to(device)
             # train_one_epoch-kspace torch.Size([4, 20, 18, 192, 192])
             # 18对应t 20-线圈数 4-slice
-            print('train_one_epoch-kspace', kspace.shape)
+            # print('train_one_epoch-kspace', kspace.shape)
             # train_one_epoch-coilmaps torch.Size([4, 20, 1, 192, 192])
-            print('train_one_epoch-coilmaps', coilmaps.shape)
+            # print('train_one_epoch-coilmaps', coilmaps.shape)
             # train_one_epoch-sampling_mask torch.Size([4, 18, 192])
-            print('train_one_epoch-sampling_mask', sampling_mask.shape)
+            # print('train_one_epoch-sampling_mask', sampling_mask.shape)
             ref_kspace, ref_img = multicoil2single(kspace, coilmaps)
             # train_one_epoch-ref_kspace torch.Size([4, 18, 192, 192])
-            print('train_one_epoch-ref_kspace', ref_kspace.shape)
+            # print('train_one_epoch-ref_kspace', ref_kspace.shape)
             # train_one_epoch-ref_kspace-dtype: torch.complex64
-            print('train_one_epoch-ref_kspace-dtype:', ref_kspace.dtype)
+            # print('train_one_epoch-ref_kspace-dtype:', ref_kspace.dtype)
             # train_one_epoch-ref_img torch.Size([4, 18, 192, 192])
-            print('train_one_epoch-ref_img', ref_img.shape)
+            # print('train_one_epoch-ref_img', ref_img.shape)
             # train_one_epoch-ref_img-dtype: torch.complex64
-            print('train_one_epoch-ref_img-dtype:', ref_img.dtype)
+            # print('train_one_epoch-ref_img-dtype:', ref_img.dtype)
             # kspace = ref_kspace*torch.unsqueeze(sampling_mask, dim=2) #[1,18,1,192]
             kspace = ref_kspace
             # kspace_real = c2r(kspace)
@@ -236,8 +236,8 @@ class TrainerKInterpolator(TrainerAbstract):
                 
                 # train_one_epoch-im_recon torch.Size([2, 2, 192, 192, 18])
                 # train_one_epoch-im_recon-dtype: torch.float32
-                print('train_one_epoch-im_recon', im_recon.shape)
-                print('train_one_epoch-im_recon-dtype:', im_recon.dtype)
+                # print('train_one_epoch-im_recon', im_recon.shape)
+                # print('train_one_epoch-im_recon-dtype:', im_recon.dtype)
                 k_recon_2ch = fft2c(im_recon)
                 # 确保 im_recon 和 k_recon_2ch 是实数张量
                 # if im_recon.is_complex():
@@ -246,8 +246,8 @@ class TrainerKInterpolator(TrainerAbstract):
                 #     k_recon_2ch = torch.view_as_real(k_recon_2ch)  # 将复数张量转换为实数张量
 
                 im_recon_4d = r2c_5d_to_4d(im_recon)
-                print('train_one_epoch-im_recon_4d', im_recon_4d.shape)
-                print('train_one_epoch-im_recon_4d-dtype:', im_recon_4d.dtype)
+                # print('train_one_epoch-im_recon_4d', im_recon_4d.shape)
+                # print('train_one_epoch-im_recon_4d-dtype:', im_recon_4d.dtype)
                 k_recon_2ch_4d = r2c_5d_to_4d(k_recon_2ch)
                 # print('train_one_epoch-k_recon_2ch')
                 # k_recon_2ch_2 = fft2c_2d(im_recon)
@@ -257,8 +257,8 @@ class TrainerKInterpolator(TrainerAbstract):
                 # print('train_one_epoch-im_recon_4d-dtype:', im_recon_4d.dtype)
                 # k_recon_2ch_4d = r2c_5d_to_4d(k_recon_2ch)
 
-                print('train_one_epoch-k_recon_2ch_4d', k_recon_2ch_4d.shape)
-                print('train_one_epoch-k_recon_2ch_4d-dtype:', k_recon_2ch_4d.dtype)
+                # print('train_one_epoch-k_recon_2ch_4d', k_recon_2ch_4d.shape)
+                # print('train_one_epoch-k_recon_2ch_4d-dtype:', k_recon_2ch_4d.dtype)
                 
                 # loss = criterion(im_recon, gnd)
                 # loss.backward()
@@ -274,11 +274,11 @@ class TrainerKInterpolator(TrainerAbstract):
                 
                 sampling_mask = sampling_mask.repeat_interleave(ref_kspace.shape[2], 2)
                 # train_one_epoch-sampling_mask-2 torch.Size([4, 18, 36864])
-                print('train_one_epoch-sampling_mask-2', sampling_mask.shape)
+                # print('train_one_epoch-sampling_mask-2', sampling_mask.shape)
                 # ls = self.train_criterion(k_recon_2ch, torch.view_as_real(ref_kspace), im_recon, ref_img, kspace_mask=sampling_mask)
                 # ls = self.train_criterion(k_recon_2ch_4d, torch.view_as_real(ref_kspace), im_recon_4d, ref_img, kspace_mask=sampling_mask)
                 ls = self.train_criterion(k_recon_2ch_4d, ref_kspace, im_recon_4d, ref_img, kspace_mask=sampling_mask)
-                print('train_one_epoch-ls')
+                # print('train_one_epoch-ls')
                 # self.loss_scaler(ls['k_recon_loss_combined'], self.optimizer, parameters=self.network.parameters())
                 # self.loss_scaler._scaler(ls['k_recon_loss_combined']).backward(retain_graph=True)
                 # self.loss_scaler(None, self.optimizer, parameters=self.network.parameters())
@@ -319,7 +319,7 @@ class TrainerKInterpolator(TrainerAbstract):
             self.logger.update_metric_item('train/recon_loss', ls['photometric'].item()/len(self.train_loader))
 
     def run_test(self):
-        model_name = 'dc_rnn_test3'
+        model_name = 'test_dcrnn_r4'
         # Configure directory info
         project_root = '.'
         self.save_dir = join(project_root, 'models/%s' % model_name)
@@ -359,8 +359,8 @@ class TrainerKInterpolator(TrainerAbstract):
 
                 # 网络预测
                 im_recon = self.network(im_u, k_u, mask, test=False)
-                print('run_test-im_recon-shape:',im_recon.shape)
-                print('run_test-im_recon-dtype:',im_recon.dtype)
+                # print('run_test-im_recon-shape:',im_recon.shape)
+                # print('run_test-im_recon-dtype:',im_recon.dtype)
                 im_recon_list.append(im_recon.cpu().data.numpy())  # 将 im_recon 转换为 numpy 数组并添加到列表中
 
                 # 计算损失

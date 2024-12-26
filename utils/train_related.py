@@ -22,6 +22,51 @@ def get_grad_norm_(parameters, norm_type: float = 2.0) -> torch.Tensor:
         total_norm = torch.norm(torch.stack([torch.norm(p.grad.detach(), norm_type).to(device) for p in parameters]), norm_type)
     return total_norm
 
+# class NativeScalerWithGradNormCount:
+#     state_dict_key = "amp_scaler"
+
+#     def __init__(self):
+#         self._scaler = torch.cuda.amp.GradScaler()
+
+#     def __call__(self, loss, optimizer, clip_grad=None, parameters=None, create_graph=False, update_grad=True, retain_graph=False):
+#         """
+#         参数:
+#         - loss: 需要反向传播的损失值。
+#         - optimizer: 使用的优化器。
+#         - clip_grad: 梯度裁剪的最大范数，如果为 None 则不裁剪。
+#         - parameters: 需要计算梯度的参数。
+#         - create_graph: 是否创建计算图以支持高阶导数。
+#         - update_grad: 是否更新梯度（即调用 optimizer.step()）。
+#         - retain_graph: 是否保留计算图以供后续反向传播使用。
+#         """
+#         # 使用 GradScaler 缩放损失并执行反向传播
+#         self._scaler.scale(loss).backward(create_graph=create_graph, retain_graph=retain_graph)
+        
+#         if update_grad:
+#             if clip_grad is not None:
+#                 assert parameters is not None
+#                 # 取消梯度缩放以便进行梯度裁剪
+#                 self._scaler.unscale_(optimizer)
+#                 # 执行梯度裁剪
+#                 norm = torch.nn.utils.clip_grad_norm_(parameters, clip_grad)
+#             else:
+#                 # 取消梯度缩放并计算梯度范数
+#                 self._scaler.unscale_(optimizer)
+#                 norm = get_grad_norm_(parameters)
+#             # 更新优化器参数
+#             self._scaler.step(optimizer)
+#             # 更新 GradScaler 的状态
+#             self._scaler.update()
+#         else:
+#             norm = None
+        
+#         return norm
+
+#     def state_dict(self):
+#         return self._scaler.state_dict()
+
+#     def load_state_dict(self, state_dict):
+#         self._scaler.load_state_dict(state_dict)
 
 class NativeScalerWithGradNormCount:
     state_dict_key = "amp_scaler"
