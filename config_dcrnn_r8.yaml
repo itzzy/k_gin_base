@@ -6,7 +6,7 @@ general:
   exp_save_root: 'experiments/'
   weights_save_frequency: 20
   # weights_save_frequency: 30
-  acc_rate: &acc_rate [4]
+  acc_rate: &acc_rate [8]
   # acc_rate: 4
   only_infer: &only_infer False
   tensorboard_log_dir: 'runs/test_dcrnn_r8'

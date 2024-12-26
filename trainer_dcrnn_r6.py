@@ -97,19 +97,6 @@ class TrainerAbstract:
         if config.training.restore_training: self.load_model(config.training)
         self.loss_scaler = NativeScaler()
 
-    # def load_model(self, args):
-
-    #     if os.path.isdir(args.restore_ckpt):
-    #         args.restore_ckpt = max(glob.glob(f'{args.restore_ckpt}/*.pth'), key=os.path.getmtime)
-    #     ckpt = torch.load(args.restore_ckpt)
-    #     self.network.load_state_dict(ckpt['model'], strict=True)
-
-    #     print("Resume checkpoint %s" % args.restore_ckpt)
-    #     if args.restore_training:
-    #         self.optimizer.load_state_dict(ckpt['optimizer_state_dict'])
-    #         self.start_epoch = ckpt['epoch'] + 1
-    #         # self.loss_scaler.load_state_dict(ckpt['scaler'])
-    #         print("With optim & sched!")
     def load_model(self, args):
         if os.path.isdir(args.restore_ckpt):
             # args.restore_ckpt = max(glob.glob(f'{args.resture_ckpt}/*.pth'), key=os.path.getmtime)
@@ -171,47 +158,17 @@ class TrainerKInterpolator(TrainerAbstract):
         self.writer.close()
 
     def train_one_epoch(self, epoch):
-        # start_time = time.time()
-        # # 累计损失
-        # running_loss = 0.0
-        # self.network.train()
-        # train_err = 0
-        # train_batches = 0
+
         start_time = time.time()
         running_loss = 0.0
-        epoch_loss = 0.0
+        # epoch_loss = 0.0
         self.network.train()
-        train_err = 0
-        train_batches = 0
+        # train_err = 0
+        # train_batches = 0
         for i, (kspace, coilmaps, sampling_mask) in enumerate(self.train_loader):
             kspace,coilmaps,sampling_mask = kspace.to(device), coilmaps.to(device), sampling_mask.to(device)
-            # train_one_epoch-kspace torch.Size([4, 20, 18, 192, 192])
-            # 18对应t 20-线圈数 4-slice
-            # print('train_one_epoch-kspace', kspace.shape)
-            # train_one_epoch-coilmaps torch.Size([4, 20, 1, 192, 192])
-            # print('train_one_epoch-coilmaps', coilmaps.shape)
-            # train_one_epoch-sampling_mask torch.Size([4, 18, 192])
-            # print('train_one_epoch-sampling_mask', sampling_mask.shape)
             ref_kspace, ref_img = multicoil2single(kspace, coilmaps)
-            # train_one_epoch-ref_kspace torch.Size([4, 18, 192, 192])
-            # print('train_one_epoch-ref_kspace', ref_kspace.shape)
-            # train_one_epoch-ref_kspace-dtype: torch.complex64
-            # print('train_one_epoch-ref_kspace-dtype:', ref_kspace.dtype)
-            # train_one_epoch-ref_img torch.Size([4, 18, 192, 192])
-            # print('train_one_epoch-ref_img', ref_img.shape)
-            # train_one_epoch-ref_img-dtype: torch.complex64
-            # print('train_one_epoch-ref_img-dtype:', ref_img.dtype)
-            # kspace = ref_kspace*torch.unsqueeze(sampling_mask, dim=2) #[1,18,1,192]
             kspace = ref_kspace
-            # kspace_real = c2r(kspace)
-            # train_one_epoch-kspace_real torch.Size([2, 36, 192, 192])
-            # train_one_epoch-kspace_real torch.Size([2, 192, 18, 192, 2])
-            # print('train_one_epoch-kspace_real', kspace_real.shape)
-            # train_one_epoch-kspace_real-dtype: torch.float32
-            # print('train_one_epoch-kspace_real-dtype:', kspace_real.dtype)
-            
-            # ref_img_real = c2r(ref_img)
-            # print('train_one_epoch-ref_img_real', ref_img_real.shape)
             if ref_img.is_cuda:  # 判断张量是否在GPU上
                 ref_img = ref_img.cpu()  # 如果在GPU上，将其复制到CPU上
             # train_one_epoch-kspace_real-dtype: torch.float32
@@ -226,63 +183,14 @@ class TrainerKInterpolator(TrainerAbstract):
 
             with torch.cuda.amp.autocast(enabled=False):
                 
-                # rec = rec_net(im_u, k_u, mask, test=False)
-                # k_recon_2ch, im_recon = self.network(kspace, mask=sampling_mask)  # size of kspace and mask: [B, T, H, W]
-                # im_recon = self.network(ref_img_real, kspace_real,sampling_mask,test=False)  # size of kspace and mask: [B, T, H, W]
                 im_recon = self.network(im_u, k_u,mask,test=False)  # size of kspace and mask: [B, T, H, W]
-                # AttributeError: 'list' object has no attribute 'shape'
-                # print('train_one_epoch-k_recon_2ch', k_recon_2ch.shape)
-                # train_one_epoch-im_recon torch.Size([4, 18, 192, 192])
-                
-                # train_one_epoch-im_recon torch.Size([2, 2, 192, 192, 18])
-                # train_one_epoch-im_recon-dtype: torch.float32
-                # print('train_one_epoch-im_recon', im_recon.shape)
-                # print('train_one_epoch-im_recon-dtype:', im_recon.dtype)
                 k_recon_2ch = fft2c(im_recon)
-                # 确保 im_recon 和 k_recon_2ch 是实数张量
-                # if im_recon.is_complex():
-                #     im_recon = torch.view_as_real(im_recon)  # 将复数张量转换为实数张量
-                # if k_recon_2ch.is_complex():
-                #     k_recon_2ch = torch.view_as_real(k_recon_2ch)  # 将复数张量转换为实数张量
-
                 im_recon_4d = r2c_5d_to_4d(im_recon)
                 # print('train_one_epoch-im_recon_4d', im_recon_4d.shape)
                 # print('train_one_epoch-im_recon_4d-dtype:', im_recon_4d.dtype)
                 k_recon_2ch_4d = r2c_5d_to_4d(k_recon_2ch)
-                # print('train_one_epoch-k_recon_2ch')
-                # k_recon_2ch_2 = fft2c_2d(im_recon)
-                # print('train_one_epoch-k_recon_2ch-2')
-                # im_recon_4d = r2c_5d_to_4d(im_recon)
-                # print('train_one_epoch-im_recon_4d', im_recon_4d.shape)
-                # print('train_one_epoch-im_recon_4d-dtype:', im_recon_4d.dtype)
-                # k_recon_2ch_4d = r2c_5d_to_4d(k_recon_2ch)
-
-                # print('train_one_epoch-k_recon_2ch_4d', k_recon_2ch_4d.shape)
-                # print('train_one_epoch-k_recon_2ch_4d-dtype:', k_recon_2ch_4d.dtype)
-                
-                # loss = criterion(im_recon, gnd)
-                # loss.backward()
-                # self.optimizer.step()
-
-            #     train_err += loss.item()
-            #     train_batches += 1
-            #     running_loss += loss.item()
-            # epoch_loss = running_loss / train_batches if train_batches > 0 else 0
-            # # 判断当前 epoch 是否是 10 的倍数，如果是则打印平均损失
-            # if i % 10 == 0:
-            #     print(f'Epoch {i} - Average Training Loss: {epoch_loss}')
-                
                 sampling_mask = sampling_mask.repeat_interleave(ref_kspace.shape[2], 2)
-                # train_one_epoch-sampling_mask-2 torch.Size([4, 18, 36864])
-                # print('train_one_epoch-sampling_mask-2', sampling_mask.shape)
-                # ls = self.train_criterion(k_recon_2ch, torch.view_as_real(ref_kspace), im_recon, ref_img, kspace_mask=sampling_mask)
-                # ls = self.train_criterion(k_recon_2ch_4d, torch.view_as_real(ref_kspace), im_recon_4d, ref_img, kspace_mask=sampling_mask)
                 ls = self.train_criterion(k_recon_2ch_4d, ref_kspace, im_recon_4d, ref_img, kspace_mask=sampling_mask)
-                # print('train_one_epoch-ls')
-                # self.loss_scaler(ls['k_recon_loss_combined'], self.optimizer, parameters=self.network.parameters())
-                # self.loss_scaler._scaler(ls['k_recon_loss_combined']).backward(retain_graph=True)
-                # self.loss_scaler(None, self.optimizer, parameters=self.network.parameters())
-                # self.loss_scaler(ls['k_recon_loss_combined'], self.optimizer, parameters=self.network.parameters(), retain_graph=True)
                 self.loss_scaler(ls['k_recon_loss_combined'], self.optimizer, parameters=self.network.parameters())
                 
              # 使用 reduce 将每个进程的损失值聚合到主进程
@@ -361,11 +269,25 @@ class TrainerKInterpolator(TrainerAbstract):
                 im_recon = self.network(im_u, k_u, mask, test=False)
                 # print('run_test-im_recon-shape:',im_recon.shape)
                 # print('run_test-im_recon-dtype:',im_recon.dtype)
+                
+                
                 im_recon_list.append(im_recon.cpu().data.numpy())  # 将 im_recon 转换为 numpy 数组并添加到列表中
 
+                k_recon_2ch = fft2c(im_recon)
+                im_recon_4d = r2c_5d_to_4d(im_recon)
+                k_recon_2ch_4d = r2c_5d_to_4d(k_recon_2ch)
+                sampling_mask = sampling_mask.repeat_interleave(ref_kspace.shape[2], 2)
+                ls = self.eval_criterion(k_recon_2ch_4d, ref_kspace, im_recon_4d, ref_img, kspace_mask=sampling_mask)
+                # ls = self.eval_criterion([kspace_complex], ref_kspace, im_recon, ref_img, kspace_mask=sampling_mask, mode='test')
+
+                self.logger.update_metric_item('val/k_recon_loss', ls['k_recon_loss'].item()/len(self.test_loader))
+                self.logger.update_metric_item('val/recon_loss', ls['photometric'].item()/len(self.test_loader))
+                self.logger.update_metric_item('val/psnr', ls['psnr'].item()/len(self.test_loader))
+                
+                
                 # 计算损失
-                loss = criterion(im_recon, gnd)
-                running_test_loss += loss.item()
+                # loss = criterion(im_recon, gnd)
+                # running_test_loss += loss.item()
 
                 # 计算 PSNR
                 for im_i, und_i, pred_i in zip(
@@ -388,22 +310,32 @@ class TrainerKInterpolator(TrainerAbstract):
                 test_batches += 1
 
                 # 打印中间测试结果
-                if i % 10 == 0:
-                    epoch_test_loss = running_test_loss / test_batches if test_batches > 0 else 0
-                    print(f"Batch {i} - Average Test Loss: {epoch_test_loss:.6f}")
+                # if i % 10 == 0:
+                #     epoch_test_loss = running_test_loss / test_batches if test_batches > 0 else 0
+                #     print(f"Batch {i} - Average Test Loss: {epoch_test_loss:.6f}")
 
             # 计算最终平均损失和 PSNR
-            epoch_test_loss = running_test_loss / test_batches if test_batches > 0 else 0
+            # epoch_test_loss = running_test_loss / test_batches if test_batches > 0 else 0
             base_psnr /= (test_batches * self.test_loader.batch_size)
             test_psnr /= (test_batches * self.test_loader.batch_size)
 
-            print(f"Final Test Loss: {epoch_test_loss:.6f}")
+            # print(f"Final Test Loss: {epoch_test_loss:.6f}")
             print(f"Base PSNR: {base_psnr:.6f}")
             print(f"Test PSNR: {test_psnr:.6f}")
             
-            # 将 im_recon 保存为.npy 文件
+            # # 将 im_recon 保存为.npy 文件
+            # im_recon_array = np.concatenate(im_recon_list, axis=0)  # 拼接所有 im_recon 张量
+            # np.save(join(self.save_dir, 'im_recon.npy'), im_recon_array)  # 保存为.npy 文件
+             # 将 im_recon 保存为.npy 文件
             im_recon_array = np.concatenate(im_recon_list, axis=0)  # 拼接所有 im_recon 张量
             np.save(join(self.save_dir, 'im_recon.npy'), im_recon_array)  # 保存为.npy 文件
+
+            # 从 im_recon 生成 k-space 数据并保存
+            # kspace_recon = torch.fft.fft2(torch.tensor(im_recon_array))  # 对重建的图像进行傅里叶变换得到 k-space 数据
+            # kspace_recon = torch.view_as_complex(kspace_recon)  # 转换为复数形式
+            # np.save(join(self.save_dir, 'kspace_recon.npy'), kspace_recon.cpu().numpy())  # 保存为 .npy 文件
+            kspace_recon = torch.fft.fft2(torch.tensor(im_recon_array))  # 对重建的图像进行傅里叶变换得到 k-space 数据
+            np.save(join(self.save_dir, 'kspace_recon.npy'), kspace_recon.cpu().numpy())  # 直接保存复数类型的 k-space 数据
 
 
         # 保存图像和模型
@@ -425,6 +357,9 @@ class TrainerKInterpolator(TrainerAbstract):
         model_path = join(self.save_dir, "final_model.pth")
         torch.save(self.network.state_dict(), model_path)
         print(f"Model parameters saved at {model_path}")
+        self.logger.update_best_eval_results(self.logger.get_metric_value('val/psnr'))
+        self.logger.update_metric_item('train/lr', self.optimizer.param_groups[0]['lr'])
+        
     # def run_test(self):
     #     model_name = 'dc_rnn'
     #     # Configure directory info
@@ -670,25 +605,66 @@ def r2c_5d_to_4d(x):
 #     return output_real_tensor
 
 def prep_input(im, acc=4.0):
-    """Undersample the batch, then reformat them into what the network accepts.
+    """
+    Undersample the batch, then reformat them into what the network accepts.
 
     Parameters
     ----------
     gauss_ivar: float - controls the undersampling rate.
-                        higher the value, more undersampling
+                    higher the value, more undersampling
     """
-    mask = cs.cartesian_mask(im.shape, acc, sample_n=8)
-    print('prep_input-mask-shape:',mask.shape)
-    print('prep_input-mask-dtype:',mask.dtype)
-    im_und, k_und = cs.undersample(im, mask, centred=False, norm='ortho')
+    # 扩展 mask 以匹配 ref_img 的维度 [batch, time, height, width]
+    batch_size, time, height, width = im.shape
+    mask = get_cine_mask(acc, x=width, y=height)  # x 和 y 要与输入图像的宽度和高度一致
+    
+    mask = np.expand_dims(mask, axis=0)  # 添加 batch 维度
+    mask = np.expand_dims(mask, axis=0)  # 添加 time 维度
+    mask = np.tile(mask, (batch_size, time, 1, 1))  # 广播到完整形状
+    mask_l = torch.from_numpy(to_tensor_format(mask, mask=True))
+    # 对输入图像进行下采样
+    # 将输入图像转换为 numpy 格式（如果 im 是 torch.Tensor）
+    im_np = im.numpy() if isinstance(im, torch.Tensor) else im
+    im_und, k_und = cs.undersample(im_np, mask, centred=False, norm='ortho')
+
     im_gnd_l = torch.from_numpy(to_tensor_format(im))
     im_und_l = torch.from_numpy(to_tensor_format(im_und))
     k_und_l = torch.from_numpy(to_tensor_format(k_und))
-    mask_l = torch.from_numpy(to_tensor_format(mask, mask=True))
-    print('prep_input-mask_l-shape:',mask_l.shape)
-    print('prep_input-mask_l-dtype:',mask_l.dtype)
     return im_und_l, k_und_l, mask_l, im_gnd_l
 
+
+def get_cine_mask(acc, acs_lines=4, x=18, y=192):
+    """
+    Generate a specific mask for CINE data.
+
+    Parameters:
+    acc: float - undersampling rate.
+    acs_lines: int - number of autocalibration signal lines.
+    x: int - width of the mask.
+    y: int - height of the mask.
+    """
+    rows = y - acs_lines
+
+    matrix = np.zeros((rows, x))
+
+    ones_per_column = rows // acc  # y//acc-acs_lines
+
+    first_column = np.zeros(rows)
+    indices = np.linspace(0, rows - 1, ones_per_column, dtype=int)
+    first_column[indices] = 1
+
+    for j in range(x):
+        matrix[:, j] = np.roll(first_column, j)
+
+    insert_rows = np.ones((acs_lines, x))
+    new_matrix = np.insert(matrix, rows // 2, insert_rows, axis=0)
+    # print(new_matrix)
+
+    # 这里根据实际需求决定是否保存mask为.mat文件，如果不需要可注释掉这行
+    # mask_datadict = {'mask': np.squeeze(new_matrix)}
+    # scio.savemat('/data0/huayu/Aluochen/Mypaper5/e_192x18_acs4_R4.mat', mask_datadict)
+
+    # return new_matrix
+    return new_matrix.astype(np.float64)  # 数据类型设为 float64 以匹配后续处理
 # import os
 # import sys
 # import pathlib
