@@ -322,8 +322,10 @@ class TrainerKInterpolator(TrainerAbstract):
         model_name = 'test_dcrnn_test'
         # Configure directory info
         project_root = '.'
-        self.save_dir = join(project_root, 'models/%s' % model_name)
+        # self.save_dir = join(project_root, 'models/%s' % model_name)
+        self.save_dir = '/nfs/zzy/code/k_gin_base/tmp'  # 本地临时目录
         if not os.path.isdir(self.save_dir):
+            print(f"Directory {self.save_dir} does not exist. Creating it...")
             os.makedirs(self.save_dir)
         # 初始化变量
         out = torch.complex(torch.zeros([118, 18, 192, 192]), torch.zeros([118, 18, 192, 192])).to(device)
@@ -420,6 +422,12 @@ class TrainerKInterpolator(TrainerAbstract):
             # np.save(join(self.save_dir, 'im_recon.npy'), im_recon_array)  # 保存为.npy 文件
              # 将 im_recon 保存为.npy 文件
             im_recon_array = np.concatenate(im_recon_list, axis=0)  # 拼接所有 im_recon 张量
+            # print(im_recon_array.nbytes / (1024 ** 3), "GB")
+            # print(im_recon_array.dtype)
+            print("Save directory:", self.save_dir)
+            print("Data shape:", im_recon_array.shape)
+            print("Data dtype:", im_recon_array.dtype)
+            print("Data size:", im_recon_array.nbytes / (1024 ** 3), "GB")
             np.save(join(self.save_dir, 'im_recon.npy'), im_recon_array)  # 保存为.npy 文件
 
             # 从 im_recon 生成 k-space 数据并保存
