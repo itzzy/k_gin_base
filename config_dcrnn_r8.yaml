@@ -1,6 +1,6 @@
 general:
   exp_name: test_dcrnn_r8
-  gpus: 3
+  gpus: 1
   wandb_entity: 'itzzy'
   debug: False
   exp_save_root: 'experiments/'

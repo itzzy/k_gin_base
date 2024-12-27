@@ -1,6 +1,6 @@
 general:
-  exp_name: test_dcrnn_test
-  gpus: 3
+  exp_name: test_dcrnn_r4
+  gpus: 1
   wandb_entity: 'itzzy'
   debug: False
   exp_save_root: 'experiments/'
@@ -9,7 +9,7 @@ general:
   acc_rate: &acc_rate [4]
   # acc_rate: 4
   only_infer: &only_infer False
-  tensorboard_log_dir: 'runs/test_dcrnn_test'
+  tensorboard_log_dir: 'runs/test_dcrnn_r4'
 
 data:
   # csv file path
@@ -17,7 +17,7 @@ data:
   # train_maps: '/data0/chentao/data/LplusSNet/data/20coil/csm_cine_multicoil_training.npy' # a demo
   # val_subjs: '/data0/chentao/data/LplusSNet/data/20coil/k_cine_multicoil_test.npy' # a demo
   # val_maps: '/data0/chentao/data/LplusSNet/data/20coil/csm_cine_multicoil_test.npy' # a demo
-  train_subjs: '/nfs/zzy/data/k_gin_data/k_cine_multicoil_training.npy' # a demo
+  train_subjs: '/nfs/zzy/data/k_gin_data/data/k_cine_multicoil_training.npy' # a demo
   train_maps: '/nfs/zzy/data/k_gin_data/csm_cine_multicoil_training.npy' # a demo
   val_subjs: '/nfs/zzy/data/k_gin_data/k_cine_multicoil_test.npy' # a demo
   val_maps: '/nfs/zzy/data/k_gin_data/csm_cine_multicoil_test.npy' # a demo
@@ -33,7 +33,6 @@ data:
   mask_root: 'masks/VISTA/e_192x18_acs4_R4.mat'
   # mask_root: '/data0/zhiyong/code/github/k-gin/masks/VISTA/e_192x18_acs4_acs_lines4_R8.mat'
   # mask_root: '/nfs/zzy/code/k_gin_base/masks/VISTA/e_192x18_acs4_acs_lines4_R6.mat'
-  # data_root: '/public/home/macong/zzy/data'
   data_root: '/nfs/zzy/data/k_gin_data'
   mask_pattern: VISTA
   acc_rate: *acc_rate
@@ -50,7 +49,7 @@ training:
   num_workers: 2
   # num_workers: 2
   # num_workers: 1
-  restore_ckpt: '/nfs/zzy/code/k_gin_base/experiments/test_dcrnn_test'
+  restore_ckpt: '/nfs/zzy/code/k_gin_base/experiments/test_dcrnn_r4'
   restore_training: False
   # restore_training: True
   use_mixed_precision: True  # differ # for complexCNN this must be set False
