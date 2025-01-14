@@ -505,9 +505,9 @@ class CRNN_MRI(nn.Module):
         """
         '''
         CRNN_MRI-forward-x: torch.float32
-        CRNN_MRI-forward-x: torch.Size([4, 2, 256, 256, 30])
-        CRNN_MRI-forward-k: torch.Size([4, 2, 256, 256, 30])
-        CRNN_MRI-forward-m: torch.Size([4, 2, 256, 256, 30])
+        CRNN_MRI-forward-x: torch.Size([4, 2, 256, 32, 30])
+        CRNN_MRI-forward-k: torch.Size([4, 2, 256, 32, 30])
+        CRNN_MRI-forward-m: torch.Size([4, 2, 256, 32, 30])
         '''
         
         '''
@@ -567,7 +567,7 @@ class CRNN_MRI(nn.Module):
             net['t%d_out'%i] = self.dcs[i-1].perform(net['t%d_out'%i], k, m)
             x = net['t%d_out'%i]
             # CRNN_MRI-x-2:dtype torch.complex64
-            # CRNN_MRI-x-2:shape torch.Size([4, 2, 256, 256, 30])
+            # CRNN_MRI-x-2:shape torch.Size([4, 2, 256, 32, 30])
             # print('CRNN_MRI-x-2:dtype',x.dtype)
             # print('CRNN_MRI-x-2:shape',x.shape)
 

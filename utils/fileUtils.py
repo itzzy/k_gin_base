@@ -79,7 +79,8 @@ anim.save('output_kgin_1122_80.gif', writer='imagemagick')
 # /nfs/zzy/code/k_gin_base/output/r8/out_1209r_8.npy
 # data = np.load('/data0/zhiyong/code/github/k-gin/out_1201_2.npy')
 # data = np.load('/nfs/zzy/code/k_gin_base/output/r8/out_1209r_8.npy')
-data = np.load('/nfs/zzy/code/k_gin_base/output/r6/out_1206_1.npy')
+# data = np.load('/nfs/zzy/code/k_gin_base/output/r6/out_1206_1.npy')
+# data = np.load('/nfs/zzy/code/k_gin_base/output/r4/out_1220_r4.npy')
 
 
 
@@ -88,9 +89,9 @@ data = np.load('/nfs/zzy/code/k_gin_base/output/r6/out_1206_1.npy')
 
 # data: (118, 18, 192, 192)
 # img: (18, 192, 192)
-print("data:", data.shape) #data: (800, coil=20, 18, 192, 192) (t,h,w)=(18, 192, 192)
+# print("data:", data.shape) #data: (800, coil=20, 18, 192, 192) (t,h,w)=(18, 192, 192)
 # data = data[100:101,:,:,:]
-data = data[100:101,:,:,:]
+# data = data[100:101,:,:,:]
 #csm = csm[100,:,:,:,:]
 # csm = csm[100:101,:,:,:] 
 # print('csm:',csm.shape)
@@ -98,15 +99,15 @@ data = data[100:101,:,:,:]
 #img = np.sum(IFFT2c(data) * np.conj(csm), axis=0) #
 # img = np.sum(IFFT2c(data) * np.conj(csm), axis=0) #
 
-img = IFFT2c(data)
-img = img[0]
-print("img:", img.shape)
+# img = IFFT2c(data)
+# img = img[0]
+# print("img:", img.shape)
 
-img_max = np.max(np.abs(img))
-if img_max == 0 or np.isnan(img_max):
-    img_norm = np.abs(img)  # 或者选择其他合理的处理方式
-else:
-    img_norm = np.abs(img) / img_max
+# img_max = np.max(np.abs(img))
+# if img_max == 0 or np.isnan(img_max):
+#     img_norm = np.abs(img)  # 或者选择其他合理的处理方式
+# else:
+#     img_norm = np.abs(img) / img_max
 
 # img_norm = np.abs(img) / img_max
 # 
@@ -119,15 +120,15 @@ else:
 # else:
 #     img_norm = np.zeros_like(img)  # 如果 img_max 为零，创建一个与 img 形状相同的全零数组
 
-brightness_factor = 3
-img_brightened = np.clip(img_norm * brightness_factor, 0, 1)
+# brightness_factor = 3
+# img_brightened = np.clip(img_norm * brightness_factor, 0, 1)
 
-def animate(frame):
-   plt.imshow(img_brightened[frame], cmap='gray')  
-   plt.title('Frame {}'.format(frame))
-   plt.axis('off')
+# def animate(frame):
+#    plt.imshow(img_brightened[frame], cmap='gray')  
+#    plt.title('Frame {}'.format(frame))
+#    plt.axis('off')
 
-anim = FuncAnimation(plt.figure(), animate, frames=len(img_brightened), interval=500)
+# anim = FuncAnimation(plt.figure(), animate, frames=len(img_brightened), interval=500)
 # kv  zzy
 # anim.save('output-kgin-1127.gif', writer='imagemagick')
 # anim.save('output-kgin-test-1130.gif', writer='imagemagick')
@@ -140,7 +141,9 @@ anim = FuncAnimation(plt.figure(), animate, frames=len(img_brightened), interval
 # anim.save('output-kgin-out_1201_3.gif', writer='imagemagick')
 # 1209r_8
 # anim.save('output-kgin_1209r_8.gif', writer='imagemagick')
-anim.save('output-kgin_1206r_6.gif', writer='imagemagick')
+# anim.save('output-kgin_1206r_6.gif', writer='imagemagick')
+# /nfs/zzy/code/k_gin_base/output/r4/out_1220_r4.npy
+# anim.save('output-kgin_1220_r4.gif', writer='imagemagick')
 
 
 
@@ -197,6 +200,124 @@ anim.save('output-kgin_1206r_6.gif', writer='imagemagick')
 
 # anim = FuncAnimation(plt.figure(), animate, frames=len(img_brightened), interval=500)
 # anim.save('test_k_cine_1120.gif', writer='imagemagick')
+
+
+import numpy as np
+import matplotlib.pyplot as plt
+from matplotlib.animation import FuncAnimation
+from numpy.fft import ifft2 as IFFT2c
+
+
+# def main(filepath,outpath):
+#     try:
+#         # 加载数据文件，首先打印出数据的原始形状
+#         # data = np.load('/nfs/zzy/code/k_gin_base/output/r4/out_1220_r4.npy')
+#         data = np.load(filepath)
+#         print("Original data shape:", data.shape)
+
+#         # 根据实际数据形状修改切片操作
+#         # 这里暂时假设你需要对数据进行不同的切片操作，需要根据实际情况修改
+#         data = data[100:101, :, :, :]
+#         print("Sliced data shape:", data.shape)
+
+#         # 傅里叶逆变换
+#         img = IFFT2c(data)
+#         img = img[0]
+#         print("img:", img.shape)
+
+#         # 归一化处理
+#         img_max = np.max(np.abs(img))
+#         if img_max == 0 or np.isnan(img_max):
+#             img_norm = np.abs(img)
+#         else:
+#             img_norm = np.abs(img) / img_max
+
+#         # 增加图像亮度
+#         brightness_factor = 3
+#         img_brightened = np.clip(img_norm * brightness_factor, 0, 1)
+
+#         def animate(frame):
+#             plt.imshow(img_brightened[frame], cmap='gray')
+#             plt.title('Frame {}'.format(frame))
+#             plt.axis('off')
+
+#         # 创建动画
+#         anim = FuncAnimation(plt.figure(), animate, frames=len(img_brightened), interval=500)
+#         # anim.save('output-kgin_1220_r4.gif', writer='imagemagick')
+#         anim.save(outpath, writer='imagemagick')
+#     except Exception as e:
+#         print(f"An error occurred: {e}")
+# def main(filepath,outpath):
+    # data = np.load('/nfs/zzy/code/k_gin_base/output/r4/out_1220_r4.npy')
+    # # Actual data shape: (118, 18, 192, 192)
+    # print("Actual data shape:", data.shape)
+    # data = data[100:101, :, :, :]  # 选取特定的时间帧
+    # img = IFFT2c(data)  # 假设 IFFT2c 是一个定义好的函数，用于逆傅里叶变换
+    # img = img[0]  # 取第一个元素，如果 IFFT2c 返回的是一个列表或数组
+    # print("img:", img.shape)
+
+    # # img_max = np.max(np.abs(img))
+    # # if img_max == 0 or np.isnan(img_max):
+    # #     img_norm = np.abs(img)  # 或者选择其他合理的处理方式
+    # # else:
+    # #     img_norm = np.abs(img) / img_max
+    # img_max = np.max(np.abs(img))
+    # img_norm = np.abs(img) / img_max
+
+    # brightness_factor = 3
+    # img_brightened = np.clip(img_norm * brightness_factor, 0, 1)
+    # def animate(frame):
+    #     plt.imshow(img_brightened[frame], cmap='gray')
+    #     plt.title('Frame {}'.format(frame))
+    #     plt.axis('off')
+
+    # # 创建动画
+    # anim = FuncAnimation(plt.figure(), animate, frames=len(img_brightened), interval=500)
+    # # anim.save('output-kgin_1220_r4.gif', writer='imagemagick')
+    # anim.save(outpath, writer='imagemagick')
+    
+data = np.load('/nfs/zzy/code/k_gin_base/output/r4/out_1220_r4.npy')
+    #csm = np.load('/data0/chentao/data/LplusSNet/data/20coil/csm_cine_multicoil_test.npy')
+print("data:", data.shape) #data: (800, coil=20, 18, 192, 192) (t,h,w)=(18, 192, 192)
+data = data[100:101,:,:,:]
+    #csm = csm[100,:,:,:,:] 
+    #img = np.sum(IFFT2c(data) * np.conj(csm), axis=0) #
+
+img = IFFT2c(data)
+img = img[0]
+print("img:", img.shape)
+
+img_max = np.max(np.abs(img))
+img_norm = np.abs(img) / img_max
+brightness_factor = 3
+img_brightened = np.clip(img_norm * brightness_factor, 0, 1)
+
+def animate(frame):
+    plt.imshow(img_brightened[frame], cmap='gray')  
+    plt.title('Frame {}'.format(frame))
+    plt.axis('off')
+
+anim = FuncAnimation(plt.figure(), animate, frames=len(img_brightened), interval=500)
+    # anim.save('output_kv01.gif', writer='imagemagick')
+    # /data0/zhiyong/code/github/k-gin/out_1122.npy
+    # anim.save('output_kv_kgin_1122.gif', writer='imagemagick')
+
+    # /data0/zhiyong/code/github/itzzy_git/k-gin_kv/out_1130.npy
+    # anim.save('output_kv_kgin_1130_2_1.gif', writer='imagemagick')
+    # /nfs/zzy/code/k_gin_kv/output/r4/out_1220_r4.npy
+    # anim.save('output_kv_kgin_1220_r4.gif', writer='imagemagick')
+    # /nfs/zzy/code/k_gin_base/output/r4/out_1220_r4.npy
+anim.save('output_kgin_base_1220_r4.gif', writer='imagemagick')
+
+
+# if __name__ == "__main__":
+#     filepath = '/nfs/zzy/code/k_gin_base/output/r4/out_1220_r4.npy'
+#     outpath = 'output-kgin_1220_r4.gif'
+#     # file_path = '/nfs/zzy/code/k_gin_base/output/r4/out_1220_r4.npy'
+#     # file_size = os.path.getsize(file_path)
+#     # # File size: 261881856 bytes
+#     # print(f"File size: {file_size} bytes")
+#     main(filepath,outpath)
 
 
 

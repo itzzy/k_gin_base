@@ -68,6 +68,129 @@ def get_grad_norm_(parameters, norm_type: float = 2.0) -> torch.Tensor:
 #     def load_state_dict(self, state_dict):
 #         self._scaler.load_state_dict(state_dict)
 
+#20250104之前是好用的
+# class NativeScalerWithGradNormCount:
+#     state_dict_key = "amp_scaler"
+
+#     def __init__(self):
+#         self._scaler = torch.cuda.amp.GradScaler()
+
+#     def __call__(self, loss, optimizer, clip_grad=None, parameters=None, create_graph=False, update_grad=True):
+#         self._scaler.scale(loss).backward(create_graph=create_graph)
+#         if update_grad:
+#             if clip_grad is not None:
+#                 assert parameters is not None
+#                 self._scaler.unscale_(optimizer)  # unscale the gradients of optimizer's assigned params in-place
+#                 norm = torch.nn.utils.clip_grad_norm_(parameters, clip_grad)
+#             else:
+#                 self._scaler.unscale_(optimizer)
+#                 norm = get_grad_norm_(parameters)
+#             self._scaler.step(optimizer)
+#             self._scaler.update()
+#         else:
+#             norm = None
+#         return norm
+
+#     def state_dict(self):
+#         return self._scaler.state_dict()
+
+#     def load_state_dict(self, state_dict):
+#         self._scaler.load_state_dict(state_dict)
+
+
+# class NativeScalerWithGradNormCount:
+#     state_dict_key = "amp_scaler"
+
+#     def __init__(self):
+#         self._scaler = torch.cuda.amp.GradScaler()
+
+#     def __call__(self, loss, optimizer, clip_grad=None, parameters=None, create_graph=False, update_grad=True):
+#         # 缩放损失并反向传播
+#         self._scaler.scale(loss).backward(create_graph=create_graph)
+#         if update_grad:
+#             # 反缩放梯度
+#             self._scaler.unscale_(optimizer)
+#             # 检查梯度是否为 inf 或 NaN
+#             inf_or_nan_detected = any(torch.isnan(p.grad).any() or torch.isinf(p.grad).any() for p in parameters if p.grad is not None)
+#             if inf_or_nan_detected:
+#                 print("Warning: Gradient contains inf or NaN values!")
+#                 # 可根据情况决定如何处理 inf 或 NaN 梯度，例如将其置零
+#                 for p in parameters:
+#                     if p.grad is not None:
+#                         p.grad[torch.isnan(p.grad) | torch.isinf(p.grad)] = 0
+#             # 梯度裁剪
+#             if clip_grad is not None:
+#                 assert parameters is not None
+#                 norm = torch.nn.utils.clip_grad_norm_(parameters, clip_grad)
+#             else:
+#                 norm = get_grad_norm_(parameters)
+#             # 更新模型参数
+#             self._scaler.step(optimizer)
+#             self._scaler.update()
+#         else:
+#             norm = None
+#         return norm
+
+#     def state_dict(self):
+#         return self._scaler.state_dict()
+
+#     def load_state_dict(self, state_dict):
+#         self._scaler.load_state_dict(state_dict)
+
+# class NativeScalerWithGradNormCount:
+#     state_dict_key = "amp_scaler"
+
+#     def __init__(self):
+#         self._scaler = torch.cuda.amp.GradScaler()
+
+#     def __call__(self, loss, optimizer, clip_grad=None, parameters=None, create_graph=False, update_grad=True):
+#         # 缩放损失并反向传播
+#         self._scaler.scale(loss).backward(create_graph=create_graph)
+#         if update_grad:
+#             # 反缩放梯度
+#             self._scaler.unscale_(optimizer)
+            
+#             # 检查参数是否参与前向传播
+#             # for idx, param in enumerate(parameters):
+#             #     if param.grad is None:
+#             #         print(f"Warning: Parameter {idx} has no gradient!")
+#             #     else:
+#             #         print(f"Parameter {idx} gradient: shape={param.grad.shape}, norm={param.grad.norm().item()}")
+
+#             # 手动检查梯度是否为 inf 或 NaN
+#             inf_or_nan_detected = False
+#             for p in parameters:
+#                 if p.grad is not None:
+#                     if torch.isnan(p.grad).any() or torch.isinf(p.grad).any():
+#                         inf_or_nan_detected = True
+#                         p.grad[torch.isnan(p.grad) | torch.isinf(p.grad)] = 0
+            
+#             if inf_or_nan_detected:
+#                 print("Warning: Gradient contains inf or NaN values!")
+            
+#             # 梯度裁剪
+#             if clip_grad is not None:
+#                 assert parameters is not None
+#                 norm = torch.nn.utils.clip_grad_norm_(parameters, clip_grad)
+#             else:
+#                 norm = get_grad_norm_(parameters)
+            
+#             # 打印调试信息：检查 optimizer_state
+#             print(f"Optimizer state: {self._scaler._per_optimizer_states[id(optimizer)]}")
+            
+#             # 更新模型参数
+#             self._scaler.step(optimizer)
+#             self._scaler.update()
+#         else:
+#             norm = None
+#         return norm
+
+#     def state_dict(self):
+#         return self._scaler.state_dict()
+
+#     def load_state_dict(self, state_dict):
+#         self._scaler.load_state_dict(state_dict)
+
 class NativeScalerWithGradNormCount:
     state_dict_key = "amp_scaler"
 
@@ -95,7 +218,6 @@ class NativeScalerWithGradNormCount:
 
     def load_state_dict(self, state_dict):
         self._scaler.load_state_dict(state_dict)
-
 
 def adjust_learning_rate(optimizer, epoch, args):
     """Decay the learning rate with half-cycle cosine after warmup"""

@@ -15,7 +15,8 @@ from os.path import join
 
 from losses import CriterionKGIN
 from utils import count_parameters, Logger, adjust_learning_rate as adjust_lr, NativeScalerWithGradNormCount as NativeScaler, add_weight_decay
-from utils import multicoil2single,FFT2c,fft2c_2d,fft2c
+from utils import multicoil2single
+from utils.fastmriBaseUtils import FFT2c,fft2c_2d,fft2c
 from utils import compressed_sensing as cs
 from utils.dnn_io import to_tensor_format
 from utils.dnn_io import from_tensor_format
@@ -154,6 +155,7 @@ class TrainerKInterpolator(TrainerAbstract):
         print("Starting training loop")
         pbar = tqdm.tqdm(range(self.start_epoch, self.num_epochs))
         for epoch in pbar:
+            self.optimizer.zero_grad()  # 清除梯度
             self.logger.reset_metric_item()
             start_time = time.time()
             if not self.only_infer:
@@ -216,11 +218,25 @@ class TrainerKInterpolator(TrainerAbstract):
                 ref_img = ref_img.cpu()  # 如果在GPU上，将其复制到CPU上
             # train_one_epoch-kspace_real-dtype: torch.float32
             # print('train_one_epoch-ref_img_real-dtype:', ref_img_real.dtype)
+            # train_one_epoch-ref_img torch.Size([2, 18, 192, 192])
+            # print('train_one_epoch-ref_img', ref_img.shape)
+            
+            # 得到的mask: (2, 192, 192, 18)
             im_und, k_und, mask, im_gnd = prep_input(ref_img, self.acc_rate_value)
             im_u = Variable(im_und.type(Tensor))
             k_u = Variable(k_und.type(Tensor))
             mask = Variable(mask.type(Tensor))
             gnd = Variable(im_gnd.type(Tensor))
+            '''
+            train_one_epoch-im_u torch.Size([2, 2, 192, 192, 18])
+            train_one_epoch-k_u torch.Size([2, 2, 192, 192, 18])
+            train_one_epoch-mask torch.Size([2, 2, 192, 192, 18])
+            '''
+            # print('train_one_epoch-im_u', im_u.shape)
+            # print('train_one_epoch-k_u', k_u.shape)
+            # print('train_one_epoch-mask', mask.shape)
+            
+            
             self.optimizer.zero_grad()
             adjust_lr(self.optimizer, i/len(self.train_loader) + epoch, self.scheduler_info)
 
@@ -246,6 +262,8 @@ class TrainerKInterpolator(TrainerAbstract):
                 #     k_recon_2ch = torch.view_as_real(k_recon_2ch)  # 将复数张量转换为实数张量
 
                 im_recon_4d = r2c_5d_to_4d(im_recon)
+                # train_one_epoch-im_recon_4d torch.Size([2, 192, 192, 18])
+                # train_one_epoch-im_recon_4d-dtype: torch.complex64
                 # print('train_one_epoch-im_recon_4d', im_recon_4d.shape)
                 # print('train_one_epoch-im_recon_4d-dtype:', im_recon_4d.dtype)
                 k_recon_2ch_4d = r2c_5d_to_4d(k_recon_2ch)
@@ -283,8 +301,17 @@ class TrainerKInterpolator(TrainerAbstract):
                 # self.loss_scaler._scaler(ls['k_recon_loss_combined']).backward(retain_graph=True)
                 # self.loss_scaler(None, self.optimizer, parameters=self.network.parameters())
                 # self.loss_scaler(ls['k_recon_loss_combined'], self.optimizer, parameters=self.network.parameters(), retain_graph=True)
+                print('train_one_epoch-k_recon_loss_combined:',ls['k_recon_loss_combined'])
                 self.loss_scaler(ls['k_recon_loss_combined'], self.optimizer, parameters=self.network.parameters())
                 
+                self.loss_scaler.update()  # 确保调用 update 方法
+                
+            # 检查梯度是否溢出
+            if self.loss_scaler._has_overflow(self.optimizer):
+                print("Gradient overflow detected!")
+                self.loss_scaler.update_scale_(self.optimizer)
+                self.loss_scaler._maybe_opt_step(self.optimizer)
+                continue
              # 使用 reduce 将每个进程的损失值聚合到主进程
             loss_reduced = ls['k_recon_loss_combined']
             
@@ -352,7 +379,7 @@ class TrainerKInterpolator(TrainerAbstract):
                 if ref_img.is_cuda:
                     ref_img = ref_img.cpu()
 
-                # 准备输入数据
+                # 准备输入数据 return im_und_l, k_und_l, mask_l, im_gnd_l
                 im_und, k_und, mask, im_gnd = prep_input(ref_img, self.acc_rate_value)
                 im_u = Variable(im_und.type(Tensor))
                 k_u = Variable(k_und.type(Tensor))
@@ -460,300 +487,6 @@ class TrainerKInterpolator(TrainerAbstract):
         print(f"Model parameters saved at {model_path}")
         self.logger.update_best_eval_results(self.logger.get_metric_value('val/psnr'))
         self.logger.update_metric_item('train/lr', self.optimizer.param_groups[0]['lr'])
-        
-    # def run_test(self):
-    #     model_name = 'test_dcrnn_test'
-    #     # Configure directory info
-    #     project_root = '.'
-    #     self.save_dir = join(project_root, 'models/%s' % model_name)
-    #     if not os.path.isdir(self.save_dir):
-    #         os.makedirs(self.save_dir)
-    #     # 初始化变量
-    #     out = torch.complex(torch.zeros([118, 18, 192, 192]), torch.zeros([118, 18, 192, 192])).to(device)
-    #     vis = []
-    #     test_err = 0
-    #     base_psnr = 0
-    #     test_psnr = 0
-    #     test_batches = 0
-    #     running_test_loss = 0.0
-    #     epoch_test_loss = 0.0
-    #     im_recon_list = []  # 用于存储 im_recon 张量
-
-
-    #     self.network.eval()
-    #     with torch.no_grad():
-    #         for i, (kspace, coilmaps, sampling_mask) in enumerate(self.test_loader):
-    #             kspace, coilmaps, sampling_mask = kspace.to(device), coilmaps.to(device), sampling_mask.to(device)
-                
-    #             # 将多通道 k-space 和图像转换为单通道
-    #             ref_kspace, ref_img = multicoil2single(kspace, coilmaps)
-    #             kspace = ref_kspace
-
-    #             # 如果图像在 GPU 上，将其转换到 CPU
-    #             if ref_img.is_cuda:
-    #                 ref_img = ref_img.cpu()
-
-    #             # 准备输入数据
-    #             im_und, k_und, mask, im_gnd = prep_input(ref_img, self.acc_rate_value)
-    #             im_u = Variable(im_und.type(Tensor))
-    #             k_u = Variable(k_und.type(Tensor))
-    #             mask = Variable(mask.type(Tensor))
-    #             gnd = Variable(im_gnd.type(Tensor))
-
-    #             # 网络预测
-    #             im_recon = self.network(im_u, k_u, mask, test=False)
-    #             # print('run_test-im_recon-shape:',im_recon.shape)
-    #             # print('run_test-im_recon-dtype:',im_recon.dtype)
-    #             im_recon_list.append(im_recon.cpu().data.numpy())  # 将 im_recon 转换为 numpy 数组并添加到列表中
-
-    #             # 计算损失
-    #             loss = criterion(im_recon, gnd)
-    #             running_test_loss += loss.item()
-
-    #             # 计算 PSNR
-    #             for im_i, und_i, pred_i in zip(
-    #                 from_tensor_format(im_gnd.numpy()),
-    #                 from_tensor_format(im_und.numpy()),
-    #                 from_tensor_format(im_recon.data.cpu().numpy())
-    #             ):
-    #                 base_psnr += complex_psnr(im_i, und_i, peak='max')
-    #                 test_psnr += complex_psnr(im_i, pred_i, peak='max')
-
-    #             # 保存重建图像
-    #             if i % 10 == 0:
-    #                 vis.append((
-    #                     from_tensor_format(im_gnd.numpy())[0],
-    #                     from_tensor_format(im_recon.data.cpu().numpy())[0],
-    #                     from_tensor_format(im_und.numpy())[0],
-    #                     from_tensor_format(mask.data.cpu().numpy(), mask=True)[0]
-    #                 ))
-
-    #             test_batches += 1
-
-    #             # 打印中间测试结果
-    #             if i % 10 == 0:
-    #                 epoch_test_loss = running_test_loss / test_batches if test_batches > 0 else 0
-    #                 print(f"Batch {i} - Average Test Loss: {epoch_test_loss:.6f}")
-
-    #         # 计算最终平均损失和 PSNR
-    #         epoch_test_loss = running_test_loss / test_batches if test_batches > 0 else 0
-    #         base_psnr /= (test_batches * self.test_loader.batch_size)
-    #         test_psnr /= (test_batches * self.test_loader.batch_size)
-
-    #         print(f"Final Test Loss: {epoch_test_loss:.6f}")
-    #         print(f"Base PSNR: {base_psnr:.6f}")
-    #         print(f"Test PSNR: {test_psnr:.6f}")
-            
-    #         # # 将 im_recon 保存为.npy 文件
-    #         # im_recon_array = np.concatenate(im_recon_list, axis=0)  # 拼接所有 im_recon 张量
-    #         # np.save(join(self.save_dir, 'im_recon.npy'), im_recon_array)  # 保存为.npy 文件
-    #          # 将 im_recon 保存为.npy 文件
-    #         im_recon_array = np.concatenate(im_recon_list, axis=0)  # 拼接所有 im_recon 张量
-    #         np.save(join(self.save_dir, 'im_recon.npy'), im_recon_array)  # 保存为.npy 文件
-
-    #         # 从 im_recon 生成 k-space 数据并保存
-    #         kspace_recon = torch.fft.fft2(torch.tensor(im_recon_array))  # 对重建的图像进行傅里叶变换得到 k-space 数据
-    #         kspace_recon = torch.view_as_complex(kspace_recon)  # 转换为复数形式
-    #         np.save(join(self.save_dir, 'kspace_recon.npy'), kspace_recon.cpu().numpy())  # 保存为 .npy 文件
-
-
-    #     # 保存图像和模型
-    #     i = 0
-    #     for im_i, pred_i, und_i, mask_i in vis:
-    #         im = abs(np.concatenate([und_i[0], pred_i[0], im_i[0], im_i[0] - pred_i[0]], 1))
-    #         if i%50 == 0:
-    #             plt.imsave(join(self.save_dir, f'im_{i}_x.png'), im, cmap='gray')
-
-    #         im = abs(np.concatenate([und_i[..., 0], pred_i[..., 0],
-    #                                 im_i[..., 0], im_i[..., 0] - pred_i[..., 0]], 0))
-    #         if i%50 == 0:
-    #             plt.imsave(join(self.save_dir, f'im_{i}_t.png'), im, cmap='gray')
-    #             plt.imsave(join(self.save_dir, f'mask_{i}.png'),
-    #                 np.fft.fftshift(mask_i[..., 0]), cmap='gray')
-    #         i += 1
-
-    #     # 保存网络权重
-    #     model_path = join(self.save_dir, "final_model.pth")
-    #     torch.save(self.network.state_dict(), model_path)
-    #     print(f"Model parameters saved at {model_path}")
-    
-    # def run_test(self):
-    #     model_name = 'dc_rnn'
-    #     # Configure directory info
-    #     project_root = '.'
-    #     self.save_dir = join(project_root, 'models/%s' % model_name)
-    #     if not os.path.isdir(self.save_dir):
-    #         os.makedirs(self.save_dir)
-    #     # 初始化变量
-    #     out = torch.complex(torch.zeros([118, 18, 192, 192]), torch.zeros([118, 18, 192, 192])).to(device)
-    #     vis = []
-    #     test_err = 0
-    #     base_psnr = 0
-    #     test_psnr = 0
-    #     test_batches = 0
-    #     running_test_loss = 0.0
-    #     epoch_test_loss = 0.0
-
-    #     self.network.eval()
-    #     with torch.no_grad():
-    #         for i, (kspace, coilmaps, sampling_mask) in enumerate(self.test_loader):
-    #             kspace, coilmaps, sampling_mask = kspace.to(device), coilmaps.to(device), sampling_mask.to(device)
-                
-    #             # 将多通道 k-space 和图像转换为单通道
-    #             ref_kspace, ref_img = multicoil2single(kspace, coilmaps)
-    #             kspace = ref_kspace
-
-    #             # 如果图像在 GPU 上，将其转换到 CPU
-    #             if ref_img.is_cuda:
-    #                 ref_img = ref_img.cpu()
-
-    #             # 准备输入数据
-    #             im_und, k_und, mask, im_gnd = prep_input(ref_img, self.acc_rate_value)
-    #             im_u = Variable(im_und.type(Tensor))
-    #             k_u = Variable(k_und.type(Tensor))
-    #             mask = Variable(mask.type(Tensor))
-    #             gnd = Variable(im_gnd.type(Tensor))
-
-    #             # 网络预测
-    #             im_recon = self.network(im_u, k_u, mask, test=False)
-
-    #             # 计算损失
-    #             loss = criterion(im_recon, gnd)
-    #             running_test_loss += loss.item()
-                
-    #             global_step = len(self.test_loader) * i
-    #             self.writer.add_scalar('Loss/Test', loss.item(), global_step)
-                
-
-    #             # 计算 PSNR
-    #             for im_i, und_i, pred_i in zip(
-    #                 from_tensor_format(im_gnd.numpy()),
-    #                 from_tensor_format(im_und.numpy()),
-    #                 from_tensor_format(im_recon.data.cpu().numpy())
-    #             ):
-    #                 base_psnr += complex_psnr(im_i, und_i, peak='max')
-    #                 test_psnr += complex_psnr(im_i, pred_i, peak='max')
-
-    #             # 保存重建图像
-    #             if i % 10 == 0:
-    #                 vis.append((
-    #                     from_tensor_format(im_gnd.numpy())[0],
-    #                     from_tensor_format(im_recon.data.cpu().numpy())[0],
-    #                     from_tensor_format(im_und.numpy())[0],
-    #                     from_tensor_format(mask.data.cpu().numpy(), mask=True)[0]
-    #                 ))
-
-    #             test_batches += 1
-
-    #             # 打印中间测试结果
-    #             if i % 10 == 0:
-    #                 epoch_test_loss = running_test_loss / test_batches if test_batches > 0 else 0
-    #                 print(f"Batch {i} - Average Test Loss: {epoch_test_loss:.6f}")
-
-    #         # 计算最终平均损失和 PSNR
-    #         epoch_test_loss = running_test_loss / test_batches if test_batches > 0 else 0
-    #         base_psnr /= (test_batches * self.test_loader.batch_size)
-    #         test_psnr /= (test_batches * self.test_loader.batch_size)
-
-    #         print(f"Final Test Loss: {epoch_test_loss:.6f}")
-    #         print(f"Base PSNR: {base_psnr:.6f}")
-    #         print(f"Test PSNR: {test_psnr:.6f}")
-    #         print(f"Final Test Loss: {running_test_loss / len(self.test_loader):.6f}")
-        
-    #     self.writer.close()
-
-    #     # 保存图像和模型
-    #     i = 0
-    #     for im_i, pred_i, und_i, mask_i in vis:
-    #         im = abs(np.concatenate([und_i[0], pred_i[0], im_i[0], im_i[0] - pred_i[0]], 1))
-    #         plt.imsave(join(self.save_dir, f'im_{i}_x.png'), im, cmap='gray')
-
-    #         im = abs(np.concatenate([und_i[..., 0], pred_i[..., 0],
-    #                                 im_i[..., 0], im_i[..., 0] - pred_i[..., 0]], 0))
-    #         plt.imsave(join(self.save_dir, f'im_{i}_t.png'), im, cmap='gray')
-    #         plt.imsave(join(self.save_dir, f'mask_{i}.png'),
-    #                 np.fft.fftshift(mask_i[..., 0]), cmap='gray')
-    #         i += 1
-
-    #     # 保存网络权重
-    #     model_path = join(self.save_dir, "final_model.pth")
-    #     torch.save(self.network.state_dict(), model_path)
-    #     print(f"Model parameters saved at {model_path}")
-        
-
-    # def run_test(self):
-    #     out = torch.complex(torch.zeros([118, 18, 192, 192]), torch.zeros([118, 18, 192, 192])).to(device)
-    #     # vis = []
-    #     # test_err = 0
-    #     # base_psnr = 0
-    #     # test_psnr = 0
-    #     # test_batches = 0
-    #     # self.network.eval()
-    #     vis = []
-    #     test_err = 0
-    #     base_psnr = 0
-    #     test_psnr = 0
-    #     test_batches = 0
-    #     running_test_loss = 0.0
-    #     epoch_test_loss = 0.0
-    #     self.network.eval()
-    #     with torch.no_grad():
-    #         for i, (kspace, coilmaps, sampling_mask) in enumerate(self.test_loader):
-    #             kspace,coilmaps,sampling_mask = kspace.to(device), coilmaps.to(device), sampling_mask.to(device)
-    #             ref_kspace, ref_img = multicoil2single(kspace, coilmaps)
-    #             # kspace = ref_kspace*torch.unsqueeze(sampling_mask, dim=2)
-    #             # np.save('out_1130_2.npy', out)
-    #             kspace = ref_kspace
-    #             if ref_img.is_cuda:  # 判断张量是否在GPU上
-    #                 ref_img = ref_img.cpu()  # 如果在GPU上，将其复制到CPU上
-    #             # train_one_epoch-kspace_real-dtype: torch.float32
-    #             # print('train_one_epoch-ref_img_real-dtype:', ref_img_real.dtype)
-    #             im_und, k_und, mask, im_gnd = prep_input(ref_img, self.acc_rate_value)
-    #             im_u = Variable(im_und.type(Tensor))
-    #             k_u = Variable(k_und.type(Tensor))
-    #             mask = Variable(mask.type(Tensor))
-    #             gnd = Variable(im_gnd.type(Tensor))
-
-    #             # k_recon_2ch, im_recon = self.network(kspace, mask=sampling_mask) # size of kspace and mask: [B, T, H, W]
-    #             im_recon = self.network(im_u, k_u,mask,test=False)  # size of kspace and mask: [B, T, H, W]
-    #             loss = criterion(im_recon, gnd)
-    #             running_test_loss += loss.item()
-    #             test_batches += 1
-                
-    #             epoch_test_loss = running_test_loss / test_batches if test_batches > 0 else 0
-    #             # 判断当前 epoch 是否是 10 的倍数，如果是则打印平均测试损失
-    #             if i % 10 == 0:
-    #                 print(f'Epoch {i} - Average Test Loss: {epoch_test_loss}')
-                # AttributeError: 'list' object has no attribute 'shape'
-                # print('train_one_epoch-k_recon_2ch', k_recon_2ch.shape)
-                # train_one_epoch-im_recon torch.Size([4, 18, 192, 192])
-                # run_test-im_recon torch.Size([1, 2, 192, 192, 18])
-                # run_test-im_recon-dtype: torch.float32
-                # print('run_test-im_recon', im_recon.shape)
-                # print('run_test-im_recon-dtype:', im_recon.dtype)
-                
-                
-            #     k_recon_2ch = k_recon_2ch[-1]
-
-            #     kspace_complex = torch.view_as_complex(k_recon_2ch)
-            #     sampling_mask = sampling_mask.repeat_interleave(kspace.shape[2], 2)
-                
-            #     out[i] = kspace_complex
-
-            #     ls = self.eval_criterion([kspace_complex], ref_kspace, im_recon, ref_img, kspace_mask=sampling_mask, mode='test')
-
-            #     self.logger.update_metric_item('val/k_recon_loss', ls['k_recon_loss'].item()/len(self.test_loader))
-            #     self.logger.update_metric_item('val/recon_loss', ls['photometric'].item()/len(self.test_loader))
-            #     self.logger.update_metric_item('val/psnr', ls['psnr'].item()/len(self.test_loader))
-            # print('...', out.shape, out.dtype)
-            # out = out.cpu().data.numpy()
-            # # np.save('out.npy', out)
-            # # np.save('out_1120.npy', out)
-            # # np.save('out_1130_3.npy', out)
-            # np.save('out_kgin_1209_test.npy', out)
-            # self.logger.update_best_eval_results(self.logger.get_metric_value('val/psnr'))
-            # self.logger.update_metric_item('train/lr', self.optimizer.param_groups[0]['lr'])
-
 
 def c2r(kspace):
     """
@@ -837,34 +570,63 @@ def prep_input(im, acc=4.0):
     # mask = np.transpose(mask, (0, 2, 1))  # 调整height和width维度顺序，同样根据实际期望顺序调整
     
     # 扩展 mask 以匹配 ref_img 的维度 [batch, time, height, width]
+    #             # train_one_epoch-ref_img torch.Size([2, 18, 192, 192])
     batch_size, time, height, width = im.shape
-    mask = get_cine_mask(acc, x=width, y=height)  # x 和 y 要与输入图像的宽度和高度一致
+    # mask = get_cine_mask(acc, x=width, y=height)  # x 和 y 要与输入图像的宽度和高度一致
+    # mask = get_cine_mask(int(acc), x=width, y=height)
+    mask = get_cine_mask(int(acc), x=time, y=height)
+    '''
+    prep_input-mask-shape: (192, 18)
+    prep_input-mask-dtype: float64
+    '''
     print('prep_input-mask-shape:', mask.shape)
     print('prep_input-mask-dtype:', mask.dtype)
     
     mask = np.expand_dims(mask, axis=0)  # 添加 batch 维度
     mask = np.expand_dims(mask, axis=0)  # 添加 time 维度
-    mask = np.tile(mask, (batch_size, time, 1, 1))  # 广播到完整形状
+    # mask = np.tile(mask, (batch_size, time, 1, 1))  # 广播到完整形状
+    # 得到的mask: (2, 192, 192, 18)
+    mask = np.tile(mask, (batch_size, width, 1, 1))  # 广播到完整形状
+    # AttributeError: 'numpy.ndarray' object has no attribute 'permute'
+    # mask = mask.permute(0,3,2,1)
+    # 将 NumPy 数组转换为 PyTorch 张量
+    mask_tensor = torch.from_numpy(mask)
+
+    # 使用 permute 方法重新排列维度
+    mask_permuted = mask_tensor.permute(0, 3, 2, 1)
+    # prep_input-mask_permuted-shape: torch.Size([2, 18, 192, 192])
+    print('prep_input-mask_permuted-shape:', mask_permuted.shape)
+    
     # 将 mask 转为 torch.Tensor，并调整为网络接受的格式
     # mask_l = torch.from_numpy(mask).to(dtype=torch.float32)  # 转换数据类型为 float32
     # # prep_input-mask_l-shape: torch.Size([2, 18, 192, 18])
     # # prep_input-mask_l-dtype: torch.float32
     # print('prep_input-mask_l-shape:', mask_l.shape)
     # print('prep_input-mask_l-dtype:', mask_l.dtype)
+    # mask_l = torch.from_numpy(to_tensor_format(mask, mask=True))
+    # mask_l = torch.from_numpy(to_tensor_format(mask, mask=True))
     mask_l = torch.from_numpy(to_tensor_format(mask, mask=True))
-    # prep_input-mask_l-shape: torch.Size([4, 2, 256, 32, 30])
-    # prep_input-mask_l-dtype: torch.float64
-    print('prep_input-mask_l-shape:',mask_l.shape)
-    print('prep_input-mask_l-dtype:',mask_l.dtype)
-    
+    # prep_input-mask_l-shape-1: torch.Size([2, 2, 192, 18, 192])
+    # prep_input-mask_l-dtype-1: torch.float64
+    mask_l = mask_l.permute(0, 1, 2, 4, 3)
+    print('prep_input-mask_l-shape-1:',mask_l.shape)
+    print('prep_input-mask_l-dtype-1:',mask_l.dtype)
+    # 使用 permute 方法重新排列维度
+    # adjusted_mask = mask_l.permute(0, 1, 2, 4, 3)
+    # mask_l = adjusted_mask
     # im_und, k_und = cs.undersample(im, mask, centred=False, norm='ortho')
     # 对输入图像进行下采样
     # 将输入图像转换为 numpy 格式（如果 im 是 torch.Tensor）
     im_np = im.numpy() if isinstance(im, torch.Tensor) else im
-    print('prep_input-mask-shape:', mask.shape)
+    mask_np = mask_permuted.numpy() if isinstance(mask_permuted, torch.Tensor) else mask_permuted
+    # prep_input-mask_np-shape: (2, 18, 192, 192)
+    # prep_input-im_np-shape: (2, 18, 192, 192)
+    print('prep_input-mask_np-shape:', mask_np.shape)
     print('prep_input-im_np-shape:', im_np.shape)
-    im_und, k_und = cs.undersample(im_np, mask, centred=False, norm='ortho')
-
+    # im_und, k_und = cs.undersample(im_np, mask, centred=False, norm='ortho')
+    im_und, k_und = cs.undersample(im_np, mask_np, centred=False, norm='ortho')
+    print('prep_input-im_und-shape:', im_und.shape)
+ 
     im_gnd_l = torch.from_numpy(to_tensor_format(im))
     im_und_l = torch.from_numpy(to_tensor_format(im_und))
     k_und_l = torch.from_numpy(to_tensor_format(k_und))
@@ -873,8 +635,8 @@ def prep_input(im, acc=4.0):
     # mask_l = torch.from_numpy(mask.astype(np.float32))  # 转换数据类型为float32（假设符合后续要求，根据实际调整）
     # if len(mask_l.shape) == 3:  # 如果mask_l维度是3维，添加通道维度等操作（根据实际网络输入要求调整）
     #     mask_l = mask_l.unsqueeze(1)  # 在维度1的位置添加通道维度，假设符合网络对mask输入维度要求
-    # print('prep_input-mask_l-shape:', mask_l.shape)
-    # print('prep_input-mask_l-dtype:', mask_l.dtype)
+    # print('prep_input-mask_l-shape-2:', mask_l.shape)
+    # print('prep_input-mask_l-dtype:-2', mask_l.dtype)
 
     return im_und_l, k_und_l, mask_l, im_gnd_l
 

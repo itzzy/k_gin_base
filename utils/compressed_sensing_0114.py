@@ -193,7 +193,6 @@ def undersample(x, mask, centred=False, norm='ortho', noise=0):
         undersampled data in k-space
 
     '''
-    print('undersample-x-shape:',x.shape)
     assert x.shape == mask.shape
     # zero mean complex Gaussian noise
     noise_power = noise

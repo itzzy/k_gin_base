@@ -36,7 +36,7 @@ os.environ['PYTORCH_CUDA_ALLOC_CONF'] = 'expandable_segments:True'
 # os.environ["CUDA_VISIBLE_DEVICES"] = "3" #,0,1,2,4,5,6,7
 # os.environ['CUDA_VISIBLE_DEVICES'] = '1'  # 指定使用 GPU 1 和 GPU 4
 # os.environ['CUDA_VISIBLE_DEVICES'] = '6'  # 指定使用 GPU 1 和 GPU 4
-# os.environ['CUDA_VISIBLE_DEVICES'] = '1'  # 指定使用 GPU 1 和 GPU 4
+os.environ['CUDA_VISIBLE_DEVICES'] = '2'  # 指定使用 GPU 1 和 GPU 4
 
 # 设置环境变量 CUDA_VISIBLE_DEVICES  0-5(nvidia--os) 2-6 3-7
 # os.environ['CUDA_VISIBLE_DEVICES'] = '0,1'  # 指定使用 GPU 1 和 GPU 4
@@ -171,6 +171,8 @@ class TrainerKInterpolator(TrainerAbstract):
             kspace = ref_kspace
             if ref_img.is_cuda:  # 判断张量是否在GPU上
                 ref_img = ref_img.cpu()  # 如果在GPU上，将其复制到CPU上
+            # train_one_epoch-ref_img torch.Size([2, 18, 192, 192])
+            # print('train_one_epoch-ref_img', ref_img.shape)
             # train_one_epoch-kspace_real-dtype: torch.float32
             # print('train_one_epoch-ref_img_real-dtype:', ref_img_real.dtype)
             im_und, k_und, mask, im_gnd = prep_input(ref_img, self.acc_rate_value)
@@ -178,12 +180,24 @@ class TrainerKInterpolator(TrainerAbstract):
             k_u = Variable(k_und.type(Tensor))
             mask = Variable(mask.type(Tensor))
             gnd = Variable(im_gnd.type(Tensor))
+            '''
+            train_one_epoch-im_u torch.Size([2, 2, 192, 192, 18])
+            train_one_epoch-k_u torch.Size([2, 2, 192, 192, 18])
+            train_one_epoch-mask torch.Size([2, 2, 192, 192, 18])
+            '''
+            # print('train_one_epoch-im_u', im_u.shape)
+            # print('train_one_epoch-k_u', k_u.shape)
+            # print('train_one_epoch-mask', mask.shape)
             self.optimizer.zero_grad()
             adjust_lr(self.optimizer, i/len(self.train_loader) + epoch, self.scheduler_info)
 
             with torch.cuda.amp.autocast(enabled=False):
                 
-                im_recon = self.network(im_u, k_u,mask,test=False)  # size of kspace and mask: [B, T, H, W]
+                im_recon = self.network(im_u, k_u,mask,test=False)
+                # train_one_epoch-im_recon torch.Size([2, 2, 192, 192, 18])
+                # train_one_epoch-im_recon-dtype: torch.float32
+                # print('train_one_epoch-im_recon', im_recon.shape)
+                # print('train_one_epoch-im_recon-dtype:', im_recon.dtype)
                 k_recon_2ch = fft2c(im_recon)
                 im_recon_4d = r2c_5d_to_4d(im_recon)
                 # print('train_one_epoch-im_recon_4d', im_recon_4d.shape)

@@ -1,6 +1,6 @@
 general:
   exp_name: test_dcrnn_test
-  gpus: 3
+  gpus: 1
   wandb_entity: 'itzzy'
   debug: False
   exp_save_root: 'experiments/'
@@ -9,7 +9,10 @@ general:
   acc_rate: &acc_rate [4]
   # acc_rate: 4
   only_infer: &only_infer False
-  tensorboard_log_dir: 'runs/test_dcrnn_test'
+  tensorboard_log_dir: 'runs/test_dcrnn_test_tensorboard_log'
+  model_name_run: 'runs/test_dcrnn_test_run'
+  model_name_run_test: 'runs/test_dcrnn_test_run_test'
+
 
 data:
   # csv file path
@@ -42,11 +45,11 @@ data:
   only_infer: *only_infer
 
 training:
-  # num_epochs: &epochs 300
+  # num_epochs: &epochs 100
   num_epochs: &epochs 1
   warmup_epoch: 0
-  # warmup_epoch: 30
-  batch_size: 2
+  # warmup_epoch: 20
+  batch_size: 1
   num_workers: 2
   # num_workers: 2
   # num_workers: 1
@@ -61,8 +64,10 @@ network:
   CRNN_MRI:
     n_ch: 2
     nf: 64
+    # nf: 128
     ks: 3
-    nc: 5
+    # nc: 5
+    nc: 10
     nd: 5
     # img_size: [18,192,192]
     # patch_size: 4
@@ -128,7 +133,8 @@ eval_loss:
 optimizer:
   which: AdamW
   AdamW:
-    lr: &lr 0.0001
+    # lr: &lr 0.0001
+    lr: &lr 0.00005
     eps: !!float 1e-8
     betas: [0.9, 0.95]
 #    weight_decay: 0.00001

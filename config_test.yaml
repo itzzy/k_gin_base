@@ -21,9 +21,9 @@ data:
   val_maps: '/nfs/zzy/data/k_gin_data/csm_cine_multicoil_test.npy' # a demo
   # mask_root: '/data0/huayu/Aluochen/Mypaper5/e_192x18_acs4_R4.mat' # a demo
   # mask_root: '/data0/zhiyong/code/github/k-gin/masks/VISTA/random_172x232_acs16_3DR4.mat' # a demo
-  # mask_root: '/data0/zhiyong/code/github/k-gin-kv/masks/VISTA/e_192x18_acs4_R4.mat' # a demo
+  mask_root: '/nfs/zzy/code/k_gin_base/masks/VISTA/e_192x18_acs4_R4.mat' # a demo
   # mask_root: '/data0/zhiyong/code/github/k-gin/masks/VISTA/e_192x18_acs4_acs_lines4_R8.mat'
-  mask_root: '/nfs/zzy/code/k_gin_base/masks/VISTA/e_192x18_acs4_acs_lines4_R6.mat'
+  # mask_root: '/nfs/zzy/code/k_gin_base/masks/VISTA/e_192x18_acs4_acs_lines4_R6.mat'
   data_root: '/nfs/zzy/data/k_gin_data'
   mask_pattern: VISTA
   acc_rate: *acc_rate
@@ -32,10 +32,10 @@ data:
   only_infer: *only_infer
 
 training:
-  # num_epochs: &epochs 300
+  # num_epochs: &epochs 200
   num_epochs: &epochs 1
   warmup_epoch: 0
-  # warmup_epoch: 30
+  # warmup_epoch: 20
   batch_size: 4
   num_workers: 2
   # num_workers: 2

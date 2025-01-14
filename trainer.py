@@ -231,6 +231,9 @@ class TrainerKInterpolator(TrainerAbstract):
         # 通过for循环遍历 self.train_loader，从数据加载器中逐批获取 kspace（k空间数据）、coilmaps（线圈映射数据）和 sampling_mask（采样掩码）。
         for i, (kspace, coilmaps, sampling_mask) in enumerate(self.train_loader):
             kspace,coilmaps,sampling_mask = kspace.to(self.device), coilmaps.to(self.device), sampling_mask.to(self.device)
+            print('train_one_epoch-kspace:',kspace.shape)
+            print('train_one_epoch-coilmaps:',coilmaps.shape)
+            print('train_one_epoch-sampling_mask:',sampling_mask.shape)
             # 将多线圈的 k 空间数据和线圈映射数据转换成单一的k空间和图像域数据。
             # ref_kspace 是处理后的单线圈 k 空间数据，ref_img 是相应的图像域数据。
             ref_kspace, ref_img = multicoil2single(kspace, coilmaps)
@@ -252,6 +255,7 @@ class TrainerKInterpolator(TrainerAbstract):
             with torch.amp.autocast('cuda', enabled=False):
                 # pred_list, im_recon  # 返回所有调整阶段的预测结果列表和重建的图像
                 k_recon_2ch, im_recon = self.network(kspace, mask=sampling_mask)  # size of kspace and mask: [B, T, H, W]
+                # repeat_interleave 函数将 sampling_mask 在第二个维度上重复 ref_kspace.shape[2] 次，然后在第三个维度上重复 2 次。这样做的目的是为了将掩码扩展到与 k-space 数据的大小相匹配，以便在后续的损失计算中使用。
                 sampling_mask = sampling_mask.repeat_interleave(ref_kspace.shape[2], 2)
                 ls = self.train_criterion(k_recon_2ch, torch.view_as_real(ref_kspace), im_recon, ref_img, kspace_mask=sampling_mask)
 

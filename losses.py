@@ -67,62 +67,110 @@ class CriterionKGIN(CriterionBase, torch.nn.Module):
 
     def forward(self, k_pred, k_ref, im_pred, im_ref, kspace_mask, mode='train'):
         loss_dict = {}
-        # print(f"forward Length of k_pred-1: {len(k_pred)}")
-        # print(f"forward Length of k_loss_list-1: {len(self.k_loss_list)}")
-        
-        # 动态调整 k_pred 的长度
-        if len(k_pred) < len(self.k_loss_list):
-            # print(f"Warning: k_pred length ({len(k_pred)}) is shorter than k_loss_list ({len(self.k_loss_list)}). Padding k_pred.")
-            padding = [k_pred[-1].clone().unsqueeze(0) for _ in range(len(self.k_loss_list) - len(k_pred))]
-            k_pred = torch.cat([k_pred] + padding, dim=0)
-
-        # print(f"forward Length of k_pred-2: {len(k_pred)}")
-        # print(f"forward Length of k_loss_list-2: {len(self.k_loss_list)}")
-        
-        if mode == 'train': 
-            assert len(k_pred) == len(self.k_loss_list)
-        
-        # 确保 im_ref 在 GPU 上
-        if im_ref.device != im_pred.device:
-            im_ref = im_ref.to(im_pred.device)
-#         Shape of im_pred: torch.Size([2, 192, 192, 18]), Shape of im_ref: torch.Size([2, 18, 192, 192])
-# Shape of im_pred_adjusted: torch.Size([2, 18, 192, 192]), Shape of im_ref_adjusted: torch.Size([2, 192, 192, 18])
-        # print(f"Shape of im_pred: {im_pred.shape}, Shape of im_ref: {im_ref.shape}")
-        # 调整 im_pred 的维度顺序，使其与 im_ref 一致
-        im_pred_adjusted = im_pred.permute(0, 3, 2, 1)  # 从 [batch_size, channels, height, width] 变为 [batch_size, height, width, channels]
-        # im_ref_adjusted = im_ref.permute(0, 2, 3, 1)  # 从 [batch_size, channels, height, width] 变为 [batch_size, height, width, channels]
-        im_ref_adjusted = im_ref # 从 [batch_size, channels, height, width] 变为 [batch_size, height, width, channels]
-        # print(f"Shape of im_pred_adjusted: {im_pred_adjusted.shape}, Shape of im_ref_adjusted: {im_ref_adjusted.shape}")
+        if mode == 'train': assert len(k_pred) == len(self.k_loss_list)
 
         for loss_name, loss_weight, loss_term in zip(self.loss_names, self.loss_weights, self.loss_list):
             if loss_name == 'k_recon_loss_combined':
                 loss_dict[loss_name] = 0
                 for pred, k_loss_term, k_loss_weights in zip(k_pred, loss_term, self.k_loss_weighting):
-                    # 调整 pred 的维度顺序，从 [height, width, channels] 变为 [batch_size, channels, height, width]
-                    pred = pred.unsqueeze(0)  # 添加 batch_size 维度
-                    pred = pred.permute(0, 3, 1, 2)  # 调整维度顺序
-                    # Shape of pred: torch.Size([1, 18, 192, 192]), Shape of k_ref: torch.Size([2, 18, 192, 192])
-                    # print(f"Shape of pred: {pred.shape}, Shape of k_ref: {k_ref.shape}")
-                    # 确保 pred 和 k_ref 的形状一致
-                    if pred.shape != k_ref.shape:
-                        pred = pred.expand_as(k_ref)  # 将 pred 的形状扩展为与 k_ref 相同
                     k_loss = k_loss_term(pred, k_ref)
                     loss_dict[loss_name] += k_loss_weights * k_loss
             elif loss_name == 'k_recon_loss' or loss_name == 'HDR':
-                # 调整 pred 的维度顺序
-                pred = k_pred[0].unsqueeze(0)  # 添加 batch_size 维度
-                pred = pred.permute(0, 3, 1, 2)  # 调整维度顺序
-                # 确保 pred 和 k_ref 的形状一致
-                if pred.shape != k_ref.shape:
-                    pred = pred.expand_as(k_ref)  # 将 pred 的形状扩展为与 k_ref 相同
-                loss = loss_term(pred, k_ref)
+                loss = loss_term(k_pred[0], k_ref)
                 loss_dict[loss_name] = loss_weight * loss
             else:
-                # 调整 im_pred 和 im_ref 的维度顺序
-                # print(f"Shape of im_pred_adjusted: {im_pred_adjusted.shape}, Shape of im_ref_adjusted: {im_ref_adjusted.shape}")
-                loss = loss_term(im_pred_adjusted, im_ref_adjusted)
+                loss = loss_term(im_pred, im_ref)
                 loss_dict[loss_name] = loss_weight * loss
         return loss_dict
+# class CriterionKGIN(CriterionBase, torch.nn.Module):
+#     def __init__(self, config):
+#         super(CriterionKGIN, self).__init__(config)
+#         self.only_maskout = config.only_maskout
+
+#     def forward(self, k_pred, k_ref, im_pred, im_ref, kspace_mask, mode='train'):
+#         loss_dict = {}
+#         # forward Length of k_pred-1: 1
+#         # forward Length of k_loss_list-1: 4
+#         # forward Length of k_pred-2: 4
+#         # forward Length of k_loss_list-2: 4
+#         print(f"forward Length of k_pred-1: {len(k_pred)}")
+#         print(f"forward Length of k_loss_list-1: {len(self.k_loss_list)}")
+        
+#         # 动态调整 k_pred 的长度
+#         if len(k_pred) < len(self.k_loss_list):
+#             # print(f"Warning: k_pred length ({len(k_pred)}) is shorter than k_loss_list ({len(self.k_loss_list)}). Padding k_pred.")
+#             padding = [k_pred[-1].clone().unsqueeze(0) for _ in range(len(self.k_loss_list) - len(k_pred))]
+#             k_pred = torch.cat([k_pred] + padding, dim=0)
+
+#         print(f"forward Length of k_pred-2: {len(k_pred)}")
+#         print(f"forward Length of k_loss_list-2: {len(self.k_loss_list)}")
+        
+#         if mode == 'train': 
+#             assert len(k_pred) == len(self.k_loss_list)
+        
+#         # 确保 im_ref 在 GPU 上
+#         if im_ref.device != im_pred.device:
+#             im_ref = im_ref.to(im_pred.device)
+# #         Shape of im_pred: torch.Size([2, 192, 192, 18]), Shape of im_ref: torch.Size([2, 18, 192, 192])
+# # Shape of im_pred_adjusted: torch.Size([2, 18, 192, 192]), Shape of im_ref_adjusted: torch.Size([2, 192, 192, 18])
+#         # print(f"Shape of im_pred: {im_pred.shape}, Shape of im_ref: {im_ref.shape}")
+#         # 调整 im_pred 的维度顺序，使其与 im_ref 一致
+#         im_pred_adjusted = im_pred.permute(0, 3, 2, 1)  # 从 [batch_size, channels, height, width] 变为 [batch_size, height, width, channels]
+#         # im_ref_adjusted = im_ref.permute(0, 2, 3, 1)  # 从 [batch_size, channels, height, width] 变为 [batch_size, height, width, channels]
+#         im_ref_adjusted = im_ref # 从 [batch_size, channels, height, width] 变为 [batch_size, height, width, channels]
+#         # print(f"Shape of im_pred_adjusted: {im_pred_adjusted.shape}, Shape of im_ref_adjusted: {im_ref_adjusted.shape}")
+
+#         for loss_name, loss_weight, loss_term in zip(self.loss_names, self.loss_weights, self.loss_list):
+#             if loss_name == 'k_recon_loss_combined':
+#                 loss_dict[loss_name] = 0
+#                 for pred, k_loss_term, k_loss_weights in zip(k_pred, loss_term, self.k_loss_weighting):
+#                     # 调整 pred 的维度顺序，从 [height, width, channels] 变为 [batch_size, channels, height, width]
+#                     pred = pred.unsqueeze(0)  # 添加 batch_size 维度
+#                     pred = pred.permute(0, 3, 1, 2)  # 调整维度顺序
+#                     # Shape of pred: torch.Size([1, 18, 192, 192]), Shape of k_ref: torch.Size([2, 18, 192, 192])
+#                     # print(f"Shape of pred: {pred.shape}, Shape of k_ref: {k_ref.shape}")
+#                     # 确保 pred 和 k_ref 的形状一致
+#                     if pred.shape != k_ref.shape:
+#                         pred = pred.expand_as(k_ref)  # 将 pred 的形状扩展为与 k_ref 相同
+                    
+#                     # 确保 pred 和 k_ref 位于同一设备上
+#                     if pred.device != k_ref.device:
+#                         pred = pred.to(k_ref.device)  # 将 pred 移动到 k_ref 的设备上
+                  
+#                     # 确保 pred 和 k_ref 启用了梯度
+#                     pred = pred.requires_grad_(True)
+#                     k_ref = k_ref.requires_grad_(True)
+#                     print('pred.requires_grad-1:',pred.requires_grad)  # 检查 pred 是否启用了梯度
+#                     print('k_ref.requires_grad-1:',k_ref.requires_grad)  # 检查 k_ref 是否启用了梯度
+                    
+#                     k_loss = k_loss_term(pred, k_ref)
+#                     loss_dict[loss_name] += k_loss_weights * k_loss
+#             elif loss_name == 'k_recon_loss' or loss_name == 'HDR':
+#                 # 调整 pred 的维度顺序
+#                 pred = k_pred[0].unsqueeze(0)  # 添加 batch_size 维度
+#                 pred = pred.permute(0, 3, 1, 2)  # 调整维度顺序
+#                 # 确保 pred 和 k_ref 的形状一致
+#                 if pred.shape != k_ref.shape:
+#                     pred = pred.expand_as(k_ref)  # 将 pred 的形状扩展为与 k_ref 相同
+               
+#                 # 确保 pred 和 k_ref 位于同一设备上
+#                 if pred.device != k_ref.device:
+#                     pred = pred.to(k_ref.device)  # 将 pred 移动到 k_ref 的设备上
+               
+#                 # 确保 pred 和 k_ref 启用了梯度
+#                 pred = pred.requires_grad_(True)
+#                 k_ref = k_ref.requires_grad_(True)
+#                 print('pred.requires_grad-2:',pred.requires_grad)  # 检查 pred 是否启用了梯度
+#                 print('k_ref.requires_grad-2:',k_ref.requires_grad)  # 检查 k_ref 是否启用了梯度
+#                 loss = loss_term(pred, k_ref)
+#                 loss_dict[loss_name] = loss_weight * loss
+#             else:
+#                 # 调整 im_pred 和 im_ref 的维度顺序
+#                 # print(f"Shape of im_pred_adjusted: {im_pred_adjusted.shape}, Shape of im_ref_adjusted: {im_ref_adjusted.shape}")
+#                 loss = loss_term(im_pred_adjusted, im_ref_adjusted)
+#                 loss_dict[loss_name] = loss_weight * loss
+#         return loss_dict
+
 # class CriterionKGIN(CriterionBase, torch.nn.Module):
 #     def __init__(self, config):
 #         super(CriterionKGIN, self).__init__(config)

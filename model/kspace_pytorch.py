@@ -3,17 +3,177 @@ import torch
 import torch.nn as nn
 
 
-def data_consistency(k, k0, mask, noise_lvl=None):
+import numpy as np
+import matplotlib.pyplot as plt
+import os
+from scipy.io import savemat
+import torch
+
+import numpy as np
+import matplotlib.pyplot as plt
+import os
+from scipy.io import savemat
+import torch
+# from utils import mymath
+
+def kspace_to_image(k_space):
+    """
+    将 k-space 数据转换到图像域。
+    
+    参数:
+        k_space (np.ndarray): k-space 数据，形状为 [batch, channels, height, width, time]。
+    
+    返回:
+        image (np.ndarray): 图像域数据，形状与输入相同。
+    """
+    # kspace_to_image-k_space-shape: (1, 30, 256, 256, 2)
+    # print('kspace_to_image-k_space-shape:',k_space.shape)
+    # 在最后两个维度（height 和 width）进行逆傅里叶变换
+    # image = np.fft.ifft2(k_space, axes=(-2, -1))
+    # image = np.fft.ifft2(k_space, axes=(-3, -2),norm='ortho')
+    # # 取幅值（可选，也可以取实部或虚部）
+    # image = np.abs(image)
+    # k_undersample_complex = k_space[0, 0, :, :, 0] + 1j * k_space[0, 1, :, :, 0]
+    k_undersample_complex = k_space[0, 0, :, :, 0] + 1j * k_space[0, 0, :, :, 1]
+    # image_from_k_space = np.fft.ifft2(k_undersample_complex)
+    image_from_k_space = np.fft.ifft2(np.fft.ifftshift(k_undersample_complex))
+    image = np.abs(image_from_k_space)
+    # print('kspace_to_image-image-shape:',image.shape) #kspace_to_image-image-shape: (256, 256)
+    return image
+
+def save_data(data, save_dir, prefix, data_name):
+    """
+    将数据保存为图像和 .npy 文件。
+
+    参数:
+        data (np.ndarray): 需要保存的数据。
+        save_dir (str): 保存文件的目录。
+        prefix (str): 文件名前缀。
+        data_name (str): 数据名称（如 'k', 'k0', 'mask', 'out'）。
+    """
+    # 确保保存目录存在
+    if not os.path.exists(save_dir):
+        os.makedirs(save_dir)
+    # 保存为 .npy 文件
+    np.save(os.path.join(save_dir, f'{prefix}{data_name}.npy'), data)
+    # 保存为 .mat 文件
+    savemat(os.path.join(save_dir, f'{prefix}{data_name}.mat'), {data_name: data})
+    # 确保数据是 2D 灰度图像
+    if data.ndim == 5:  # 如果数据是 5D 张量 [batch, channel, height, width, time]
+        image_data = data[0, 0, :, :, 0]  # 取第一个样本、第一个通道、第一个时间帧
+    elif data.ndim == 4:  # 如果数据是 4D 张量 [batch, channel, height, width]
+        image_data = data[0, 0, :, :]  # 取第一个样本、第一个通道
+    elif data.ndim == 3:  # 如果数据是 3D 张量 [channel, height, width]
+        image_data = data[0, :, :]  # 取第一个通道
+    else:  # 如果数据是 2D 张量 [height, width]
+        image_data = data
+
+    # 确保数据是实数（取幅值）
+    if np.iscomplexobj(image_data):
+        image_data = np.abs(image_data)
+
+    # 归一化到 [0, 1] 范围
+    image_data = (image_data - np.min(image_data)) / (np.max(image_data) - np.min(image_data))
+    # 保存为图片
+    plt.imsave(os.path.join(save_dir, f'{prefix}{data_name}.png'), image_data, cmap='gray')
+    print(f"Saved {data_name} data to {save_dir} with prefix '{prefix}'")
+
+
+def save_k_space_data(k, k0, mask, save_dir, prefix=''):
+    """
+    将 k-space 数据 k, k0 和 mask 保存为图片和 .npy 文件。
+
+    参数:
+        k (torch.Tensor): 输入的 k-space 数据。
+        k0 (torch.Tensor): 初始采样的 k-space 数据。
+        mask (torch.Tensor): 采样掩码。
+        save_dir (str): 保存文件的目录。
+        prefix (str): 文件名前缀。
+    """
+    # 将 Tensor 转换为 numpy 数组，并分离梯度
+    k_bak = k
+    k_np = k_bak.detach().cpu().numpy()
+    k0_bak =k0
+    k0_np = k0_bak.detach().cpu().numpy()
+    mask_bak = mask
+    mask_np = mask_bak.detach().cpu().numpy()
+
+    # 保存 k, k0, mask 为 .npy 和 .mat 格式
+    np.save(os.path.join(save_dir, f'{prefix}k.npy'), k_np)
+    savemat(os.path.join(save_dir, f'{prefix}k.mat'), {'k': k_np})
+
+    np.save(os.path.join(save_dir, f'{prefix}k0.npy'), k0_np)
+    savemat(os.path.join(save_dir, f'{prefix}k0.mat'), {'k0': k0_np})
+
+    np.save(os.path.join(save_dir, f'{prefix}mask.npy'), mask_np)
+    savemat(os.path.join(save_dir, f'{prefix}mask.mat'), {'mask': mask_np})
+    # save_k_space_data-k-shape: (1, 30, 256, 256, 2)
+    # save_k_space_data-k0-shape: (1, 30, 256, 256, 2)
+    # print('save_k_space_data-k-shape:',k_np.shape)
+    # print('save_k_space_data-k0-shape:',k0_np.shape)
+    # 将 k-space 数据转换到图像域
+    k_image = kspace_to_image(k_np)
+    k0_image = kspace_to_image(k0_np)
+
+    # 保存 k, k0, mask
+    save_data(k_image, save_dir, prefix, 'k_image')
+    save_data(k0_image, save_dir, prefix, 'k0_image')
+
+    print(f"Saved k-space data to {save_dir} with prefix '{prefix}'")
+
+def save_out_data(out, save_dir, prefix=''):
+    """
+    将 out 保存为图像和 .npy 文件。
+
+    参数:
+        out (torch.Tensor): data_consistency 返回的 k-space 数据。
+        save_dir (str): 保存文件的目录。
+        prefix (str): 文件名前缀。
+    """
+    # 将 Tensor 转换为 numpy 数组，并分离梯度
+    out_bak = out
+    out_np = out_bak.detach().cpu().numpy()
+
+    # 保存 out 为 .npy 和 .mat 格式
+    np.save(os.path.join(save_dir, f'{prefix}out.npy'), out_np)
+    savemat(os.path.join(save_dir, f'{prefix}out.mat'), {'out': out_np})
+    
+    # 将 k-space 数据转换到图像域
+    out_image = kspace_to_image(out_np)
+    # 保存 out为图像
+    save_data(out_image, save_dir, prefix, 'out_image')
+
+    print(f"Saved out data to {save_dir} with prefix '{prefix}'")
+    
+# k 是当前 k 空间数据，k0 是原始采样数据，mask 是采样掩码。
+# def data_consistency(k, k0, mask, noise_lvl=None, save_dir=None, prefix=''):
+def data_consistency(k, k0, mask, noise_lvl=None, save_dir=None, prefix='', save_last=False):
     """
     k    - input in k-space
     k0   - initially sampled elements in k-space
     mask - corresponding nonzero location
+    noise_lvl - noise level
+    save_dir - directory to save data (optional)
+    prefix - prefix for saved files (optional)
     """
+    # 如果需要保存输入数据
+    # if save_dir:
+    #     save_k_space_data(k, k0, mask, save_dir, prefix)
+
+    # 原始逻辑
     v = noise_lvl
     if v:  # noisy case
         out = (1 - mask) * k + mask * (k + v * k0) / (1 + v)
     else:  # noiseless case
         out = (1 - mask) * k + mask * k0
+
+    # 如果需要保存输出数据
+    # if save_dir:
+    #     save_out_data(out, save_dir, prefix)a
+     # 如果需要保存数据（仅在最后一个 batch 的最后一个 epoch 保存）
+    if save_last and save_dir:
+        save_k_space_data(k, k0, mask, save_dir, prefix)
+        save_out_data(out, save_dir, prefix)
     return out
 
 
@@ -34,14 +194,14 @@ class DataConsistencyInKspace(nn.Module):
     def forward(self, *input, **kwargs):
         return self.perform(*input)
 
-    def perform(self, x, k0, mask):
+    # def perform(self, x, k0, mask):
+    # net['t%d_out' % i] = self.dcs[i - 1].perform(net['t%d_out' % i], k, m, save_last=save_last)
+    def perform(self, x, k0, mask, save_last=False):
         """
         x    - input in image domain, of shape (n, 2, nx, ny[, nt])
         k0   - initially sampled elements in k-space
         mask - corresponding nonzero location
         """
-        # print('perform-x-shape:',x.shape)
-        # print('perform-mask-shape:',mask.shape)
 
         if x.dim() == 4: # input is 2D
             x    = x.permute(0, 2, 3, 1)
@@ -51,17 +211,87 @@ class DataConsistencyInKspace(nn.Module):
             x    = x.permute(0, 4, 2, 3, 1)
             k0   = k0.permute(0, 4, 2, 3, 1)
             mask = mask.permute(0, 4, 2, 3, 1)
-        # perform-x-shape: torch.Size([4, 30, 256, 32, 2])
-        # perform-x-dtype: torch.float32
+        #DataConsistencyInKspace-perform-x-shape: torch.Size([1, 30, 256, 256, 2])
+        # perform-x-dtype: torch.float32a
+        # DataConsistencyInKspace-perform-k0-shape: torch.Size([1, 30, 256, 256, 2])
+        # print('DataConsistencyInKspace-perform-x-shape:',x.shape)
+        # DataConsistencyInKspace-perform-k0-shape: torch.Size([1, 30, 256, 256, 2])
+        # print('DataConsistencyInKspace-perform-k0-shape:',k0.shape)
         # print('perform-x-dtype:',x.dtype)   
         # k = torch.fft(x, 2, normalized=self.normalized)
         # out = data_consistency(k, k0, mask, self.noise_lvl)
         # x_res = torch.ifft(out, 2, normalized=self.normalized)
-        
+        # 检查 save_dir 是否存在，如果不存在则创建
+        save_dir='./saved_data/0114_1'
+        if not os.path.exists(save_dir):
+            os.makedirs(save_dir)
         # k = torch.fft.fft2(x, dim=(-2, -1), normalized=self.normalized)
-        k = torch.fft.fft2(x, dim=(-2, -1), norm='forward')
-        out = data_consistency(k, k0, mask, self.noise_lvl)
-        x_res = torch.fft.ifft2(out, dim=(-2, -1), norm='backward')
+        # k = torch.fft.fft2(x, dim=(-2, -1), norm='forward')
+        # k = torch.fft.fft2(x, dim=(-3, -2), norm='forward')
+        # 正向傅里叶变换
+        # k = torch.fft.fft2(x, dim=(-2, -1), norm='ortho')
+        # k = torch.fft.fft2(x, dim=(-3, -2), norm='ortho')
+        # k shape: (n, nt, nx, ny, 2)
+        # 检查 k0 所在的设备
+        # device = k0.device
+        prefix='last_epoch_'
+         # 保存输入的x（x是tensor）
+        x_recon_image = x.detach().cpu().numpy()
+        if save_last and save_dir:
+            # 保存输入的x（x是tensor）
+            # x_recon_image = x.detach().cpu().numpy()
+            # 将 k-space 数据转换到图像域
+            # x_recon_image = kspace_to_image(x_np)
+            # 保存 k, k0, mask
+            save_data(x_recon_image, save_dir, prefix, 'x_recon_image')
+        
+        # print('perform-self.normalized:',self.normalized) #perform-self.normalized: True
+        # x_recon_f = mymath.fft2(x_recon_image, axes=(-3, -2),norm='ortho' if self.normalized else 'backward')
+        # print('perform-x_recon_f-shape:',x_recon_f.shape)
+        # # 检查 k0 所在的设备
+        # device = k0.device
+        # # 将 x_recon_tensor 移动到与 k0 相同的设备上
+        # x_recon_tensor = torch.from_numpy(x_recon_f)
+        # x_recon_tensor = x_recon_tensor.to(device)
+        # print('perform-x_recon_tensor-shape:',x_recon_tensor.shape)
+        k = torch.fft.fft2(x, dim=(-3, -2), norm='ortho' if self.normalized else 'backward')
+        # out = data_consistency(k, k0, mask, self.noise_lvl)
+        # out = data_consistency(k, k0, mask, self.noise_lvl,'./main_crnn_test','crnn0111')
+        # x_res = torch.fft.ifft2(out, dim=(-2, -1), norm='backward')
+        # out = data_consistency(x_recon_tensor, k0, mask, self.noise_lvl, save_dir=save_dir, prefix=prefix, save_last=save_last)
+        out = data_consistency(k, k0, mask, self.noise_lvl, save_dir=save_dir, prefix=prefix, save_last=save_last)
+        # print('out-dtype:',out.dtype) out-dtype: torch.complex64
+        # k空间的最大值一般都是10点若干次方
+        # 将 out 张量从 CUDA 设备复制到 CPU
+        # out_cpu = out.cpu()
+        #x_u = mymath.ifft2(x_fu, norm=norm)
+        # out_cpu = out.detach().cpu().numpy()
+        # print('perform-out_cpu-shape:',out_cpu.shape)
+        # x_res_cpu = mymath.ifft2(out_cpu, axes=(-3, -2),norm='ortho' if self.normalized else 'backward')
+        # print('perform-x_res_cpu-shape:',x_res_cpu.shape)
+        # x_res = torch.from_numpy(x_res_cpu)
+        # x_res = x_res.to(device)
+        # print('perform-x_res-shape:',x_res.shape)
+        # k空间的最大值一般都是10点若干次方
+        # data_consistency out - min: 1.3857203e-08
+        # data_consistency out - max: 10.667565
+        # data_consistency out - max: 0.012679623
+        # print("data_consistency out - min:", np.min(np.abs(out_cpu)))
+        # print("data_consistency out - max:",np.max(np.abs(out_cpu)))
+        # print("data_consistency out - max:", np.mean(np.abs(out_cpu)))
+        # 逆傅里叶变换
+        # x_res = torch.fft.ifft2(out, dim=(-2, -1), norm='backward')
+        # 逆傅里叶变换
+        # x_res = torch.fft.ifft2(out, dim=(-3, -2), norm='ortho')
+        # x_res shape: (n, nt, nx, ny, 2)
+        x_res = torch.fft.ifft2(out, dim=(-3, -2), norm='ortho' if self.normalized else 'backward')
+        # x_res = torch.fft.ifft2(out, dim=(-2, -1), norm='ortho')
+        # data_consistency x_res - min: 5.820766091346741e-11
+        # data_consistency x_res - max: 0.07881709188222885
+        # data_consistency x_res - mean: 0.0012523188488557935
+        # print("data_consistency x_res - min:", torch.min(torch.abs(x_res)).item())
+        # print("data_consistency x_res - max:",torch.max(torch.abs(x_res)).item())
+        # print("data_consistency x_res - mean:", torch.mean(torch.abs(x_res)).item())
 
 
         if x.dim() == 4:
@@ -75,6 +305,8 @@ class DataConsistencyInKspace(nn.Module):
         
         # x_res = torch.view_as_real(x_res)  # 将复数拆分为实部和虚部作为两个通道
         x_res = torch.abs(x_res)  # 获取幅值
+        # perform-x_res-2-shape: torch.Size([1, 2, 256, 256, 30])
+        # perform-x_res-2-dtype: torch.float32
         # print('perform-x_res-2-shape:',x_res.shape)
         # print('perform-x_res-2-dtype:',x_res.dtype)     
         return x_res
@@ -137,6 +369,7 @@ class KspaceFillNeighbourLayer(nn.Module):
         self.op = get_add_neighbour_op(2, frame_dist, divide_by_n, clipped)
 
     def forward(self, *input, **kwargs):
+        # print('KspaceFillNeighbourLayer----')
         return self.perform(*input)
 
     def perform(self, k, mask):
@@ -222,6 +455,7 @@ class AveragingInKspace(nn.Module):
         self.kavg = KspaceFillNeighbourLayer(frame_dist, divide_by_n, clipped)
 
     def forward(self, *input, **kwargs):
+        # print('AveragingInKspace-----')
         return self.perform(*input)
 
     def perform(self, x, mask):
@@ -229,10 +463,14 @@ class AveragingInKspace(nn.Module):
         x    - input in image space, shape (n, 2, nx, ny, nt)
         mask - corresponding nonzero location
         """
+       
         mask = mask.permute(0, 1, 4, 2, 3)
 
         x = x.permute(0, 4, 2, 3, 1) # put t to front, in convenience for fft
-        k = torch.fft(x, 2, normalized=self.normalized)
+        print('AveragingInKspace-x-shape:',x.shape)
+        print('AveragingInKspace-mask-shape:',mask.shape)
+        # k = torch.fft(x, 2, normalized=self.normalized)
+        k = torch.fft.fft2(x, dim=(-3, -2), norm='ortho' if self.normalized else 'backward')
         k = k.permute(0, 4, 1, 2, 3) # then put ri to the front, then t
 
         # data sharing
@@ -245,7 +483,9 @@ class AveragingInKspace(nn.Module):
         # out.shape: [nb, 2*len(frame_dist), nt, nx, ny]
         # we then detatch confused real/img channel and replica kspace channel due to datasharing (nc)
         out = out.permute(0,1,3,4,5,2) # jo version, split ri and nc, put ri to the back for ifft
-        x_res = torch.ifft(out, 2, normalized=self.normalized)
+        # x_res = torch.ifft(out, 2, normalized=self.normalized)
+        # x_res shape: (n, nt, nx, ny, 2)
+        x_res = torch.fft.ifft2(out, dim=(-3, -2), norm='ortho' if self.normalized else 'backward')
 
 
         # now nb, nc, nt, nx, ny, ri, put ri to channel position, and after nc (i.e. within each nc)
