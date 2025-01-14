@@ -46,7 +46,7 @@ training:
   warmup_epoch: 0
   # warmup_epoch: 30
   batch_size: 2
-  num_workers: 2
+  num_workers: 1
   # num_workers: 2
   # num_workers: 1
   restore_ckpt: '/nfs/zzy/code/k_gin_base/experiments/test_dcrnn_r4'

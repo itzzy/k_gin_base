@@ -23,7 +23,7 @@ os.environ['PYTORCH_CUDA_ALLOC_CONF'] = 'expandable_segments:True'
 # os.environ["CUDA_VISIBLE_DEVICES"] = "3" #,0,1,2,4,5,6,7
 # os.environ['CUDA_VISIBLE_DEVICES'] = '1'  # 指定使用 GPU 1 和 GPU 4
 # os.environ['CUDA_VISIBLE_DEVICES'] = '6'  # 指定使用 GPU 1 和 GPU 4
-os.environ['CUDA_VISIBLE_DEVICES'] = '0'  # 指定使用 GPU 1 和 GPU 4
+os.environ['CUDA_VISIBLE_DEVICES'] = '1'  # 指定使用 GPU 1 和 GPU 4
 
 # 设置环境变量 CUDA_VISIBLE_DEVICES  0-5(nvidia--os) 2-6 3-7
 # os.environ['CUDA_VISIBLE_DEVICES'] = '0,1'  # 指定使用 GPU 1 和 GPU 4
@@ -247,7 +247,12 @@ class TrainerKInterpolator(TrainerAbstract):
             # np.save('out.npy', out)
             # np.save('out_1120.npy', out)
             # np.save('out_1130_3.npy', out)
-            np.save('out_kgin_1209_test.npy', out)
+            # np.save('out_kgin_base_0108.npy', out)
+            # 尝试保存数组到文件，如果文件已存在则覆盖
+            try:
+                np.save('out_kgin_base_0108.npy', out)
+            except OSError as e:
+                print(f"An error occurred: {e}")
             self.logger.update_best_eval_results(self.logger.get_metric_value('val/psnr'))
             self.logger.update_metric_item('train/lr', self.optimizer.param_groups[0]['lr'])
 
