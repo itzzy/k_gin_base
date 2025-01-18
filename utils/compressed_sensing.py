@@ -2,6 +2,7 @@ import numpy as np
 from . import mymath
 from numpy.lib.stride_tricks import as_strided
 
+# from utils.mri_related import fft2c, ifft2c
 
 def soft_thresh(u, lmda):
     """Soft-threshing operator for complex valued input"""
@@ -167,6 +168,57 @@ def perturbed_shear_grid_mask(shape, acceleration_rate, sample_low_freq=True,
     return mask_rep
 
 
+# def undersample(x, mask, centred=False, norm='ortho', noise=0):
+#     '''
+#     Undersample x. FFT2 will be applied to the last 2 axis
+#     Parameters
+#     ----------
+#     x: array_like
+#         data
+#     mask: array_like
+#         undersampling mask in fourier domain
+
+#     norm: 'ortho' or None
+#         if 'ortho', performs unitary transform, otherwise normal dft
+
+#     noise_power: float
+#         simulates acquisition noise, complex AWG noise.
+#         must be percentage of the peak signal
+
+#     Returns
+#     -------
+#     xu: array_like
+#         undersampled image in image domain. Note that it is complex valued
+
+#     x_fu: array_like
+#         undersampled data in k-space
+
+#     '''
+#     print('undersample-x-shape:',x.shape)
+#     assert x.shape == mask.shape
+#     # zero mean complex Gaussian noise
+#     noise_power = noise
+#     nz = np.sqrt(.5)*(np.random.normal(0, 1, x.shape) + 1j * np.random.normal(0, 1, x.shape))
+#     nz = nz * np.sqrt(noise_power)
+
+#     if norm == 'ortho':
+#         # multiplicative factor
+#         nz = nz * np.sqrt(np.prod(mask.shape[-2:]))
+#     else:
+#         nz = nz * np.prod(mask.shape[-2:])
+
+#     if centred:
+#         x_f = mymath.fft2c(x, norm=norm)
+#         x_fu = mask * (x_f + nz)
+#         x_u = mymath.ifft2c(x_fu, norm=norm)
+#         return x_u, x_fu
+#     else:
+#         x_f = mymath.fft2(x, norm=norm)
+#         x_fu = mask * (x_f + nz)
+#         x_u = mymath.ifft2(x_fu, norm=norm)
+#         # 函数最终会返回欠采样后的图像数据（在图像域）和欠采样的数据（在 k 空间）
+#         return x_u, x_fu
+
 def undersample(x, mask, centred=False, norm='ortho', noise=0):
     '''
     Undersample x. FFT2 will be applied to the last 2 axis
@@ -212,9 +264,9 @@ def undersample(x, mask, centred=False, norm='ortho', noise=0):
         x_u = mymath.ifft2c(x_fu, norm=norm)
         return x_u, x_fu
     else:
-        x_f = mymath.fft2(x, norm=norm)
+        x_f = mymath.fft2(x)
         x_fu = mask * (x_f + nz)
-        x_u = mymath.ifft2(x_fu, norm=norm)
+        x_u = mymath.ifft2(x_fu)
         # 函数最终会返回欠采样后的图像数据（在图像域）和欠采样的数据（在 k 空间）
         return x_u, x_fu
 

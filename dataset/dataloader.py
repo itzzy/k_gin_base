@@ -124,6 +124,7 @@ class CINE2DT(torch.utils.data.Dataset):
         # 从指定的路径加载一个 MATLAB 文件，该文件包含了采样掩码 (Mask)。
         C =loadmat(config.mask_root)
         # 从加载的 MATLAB 文件中获取 mask 数据，并将其保存到 self.mask 属性中。
+        #  prep_input-mask-shape: (192, 18)
         self.mask = C['mask'][:]
         # 对 self.mask 进行转置操作。
         self.mask = np.transpose(self.mask,[1,0])
