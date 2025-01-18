@@ -20,6 +20,30 @@ from utils.mri_related import fft2c,ifft2c
 # 处理numpy数据
 from utils.mymath import fft2c  as fft2c_numpy,ifft2c as ifft2c_numpy
 
+# def kspace_to_image(k_space):
+#     """
+#     将 k-space 数据转换到图像域。
+    
+#     参数:
+#         k_space (np.ndarray): k-space 数据，形状为 [batch, channels, height, width, time]。
+    
+#     返回:
+#         image (np.ndarray): 图像域数据，形状与输入相同。
+#     """
+#     # kspace_to_image-k_space-shape: (1, 30, 256, 256, 2)
+#     # print('kspace_to_image-k_space-shape:',k_space.shape)
+#     # 在最后两个维度（height 和 width）进行逆傅里叶变换
+#     # image = np.fft.ifft2(k_space, axes=(-2, -1))
+#     # image = np.fft.ifft2(k_space, axes=(-3, -2),norm='ortho')
+#     # # 取幅值（可选，也可以取实部或虚部）
+#     # image = np.abs(image)
+#     # k_undersample_complex = k_space[0, 0, :, :, 0] + 1j * k_space[0, 1, :, :, 0]
+#     k_undersample_complex = k_space[0, 0, :, :, 0] + 1j * k_space[0, 0, :, :, 1]
+#     # image_from_k_space = np.fft.ifft2(k_undersample_complex)
+#     image_from_k_space = np.fft.ifft2(np.fft.ifftshift(k_undersample_complex))
+#     image = np.abs(image_from_k_space)
+#     # print('kspace_to_image-image-shape:',image.shape) #kspace_to_image-image-shape: (256, 256)
+#     return image
 def kspace_to_image(k_space):
     """
     将 k-space 数据转换到图像域。
@@ -30,23 +54,31 @@ def kspace_to_image(k_space):
     返回:
         image (np.ndarray): 图像域数据，形状与输入相同。
     """
-    # print('kspace_to_image-k_space-shape:',k_space.shape) #torch.Size([1, 30, 256, 256, 2])
-    # print('kspace_to_image-k_space-dtype:',k_space.dtype) # torch.float32
+    # kspace_to_image-k_space-shape: (1, 30, 256, 256, 2)
+    print('kspace_to_image-k_space-shape:',k_space.shape)
+    k_space_adjust = k_space.permute(0, 1, 4, 2, 3)
+    # Adjusted shape of k_undersample: torch.Size([2, 2, 18, 192, 192])
+    print("Adjusted shape of k_undersample:", k_space_adjust.shape) # nb, nc, nt, nx, ny
+    # nb, nc, nt, nx, ny = x.size()  # 获取输入张量的维度
+    k_space_adjust_img = ifft2c(k_space_adjust)
+    k_space_adjust_img = k_space_adjust_img.permute(0,1,3,4,2)
+    # Adjusted shape of k_undersample_res: torch.Size([2, 2, 192, 192, 18])
+    print("Adjusted shape of k_undersample_res:", k_space_adjust_img.shape) # nb, nc, nt, nx, ny
+    
+    k_space_adjust_np = k_space_adjust_img.cpu().numpy()
+    image_from_k_space = np.abs(k_space_adjust_np[0,0,:,:,0])
     # 在最后两个维度（height 和 width）进行逆傅里叶变换
     # image = np.fft.ifft2(k_space, axes=(-2, -1))
     # image = np.fft.ifft2(k_space, axes=(-3, -2),norm='ortho')
     # # 取幅值（可选，也可以取实部或虚部）
-    k_undersample_complex = torch.view_as_complex(k_space.contiguous()) #torch.Size([1, 30, 256, 256])
-    # print('kspace_to_image-k_undersample_complex-shape:',k_undersample_complex.shape) # torch.Size([4, 18, 192, 192])
-    # print('kspace_to_image-k_undersample_complex-dtype:',k_undersample_complex.dtype) # torch.complex64
-    kspace_img = ifft2c(k_undersample_complex)
-    # print('kspace_to_image-kspace_img-shape:',kspace_img.shape) #torch.Size([4, 18, 192, 192])
-    # print('kspace_to_image-kspace_img-dtype:',kspace_img.dtype) #torch.complex64
-    image_from_k_space = kspace_img.detach().cpu().numpy()
-    # print('kspace_to_image-image_from_k_space-shape:',image_from_k_space.shape) #(4, 18, 192, 192)
-    image = np.abs(image_from_k_space)
+    # image = np.abs(image)
+    # k_undersample_complex = k_space[0, 0, :, :, 0] + 1j * k_space[0, 1, :, :, 0]
+    # k_undersample_complex = k_space[0, 0, :, :, 0] + 1j * k_space[0, 0, :, :, 1]
+    # # image_from_k_space = np.fft.ifft2(k_undersample_complex)
+    # image_from_k_space = np.fft.ifft2(np.fft.ifftshift(k_undersample_complex))
+    # image = np.abs(image_from_k_space)
     # print('kspace_to_image-image-shape:',image.shape) #kspace_to_image-image-shape: (256, 256)
-    return image
+    return image_from_k_space
 
 def save_data(data, save_dir, prefix, data_name):
     """
@@ -80,11 +112,12 @@ def save_data(data, save_dir, prefix, data_name):
         image_data = np.abs(image_data)
 
     # 归一化到 [0, 1] 范围
-    image_data = (image_data - np.min(image_data)) / (np.max(image_data) - np.min(image_data))
+    # image_data = (image_data - np.min(image_data)) / (np.max(image_data) - np.min(image_data))
     # 保存为图片
     plt.imsave(os.path.join(save_dir, f'{prefix}{data_name}.png'), image_data, cmap='gray')
     print(f"Saved {data_name} data to {save_dir} with prefix '{prefix}'")
-    
+
+
 def save_k_space_data(k, k0, mask, save_dir, prefix=''):
     """
     将 k-space 数据 k, k0 和 mask 保存为图片和 .npy 文件。
@@ -120,12 +153,13 @@ def save_k_space_data(k, k0, mask, save_dir, prefix=''):
     # 将 k-space 数据转换到图像域
     # k_image = kspace_to_image(k_np)
     # k0_image = kspace_to_image(k0_np)
-    k_image = kspace_to_image(k_bak)
-    k0_image = kspace_to_image(k0_bak)
+    k_image = kspace_to_image(k)
+    k0_image = kspace_to_image(k0)
 
     # 保存 k, k0, mask
     save_data(k_image, save_dir, prefix, 'k_image')
     save_data(k0_image, save_dir, prefix, 'k0_image')
+
     print(f"Saved k-space data to {save_dir} with prefix '{prefix}'")
 
 def save_out_data(out, save_dir, prefix=''):
@@ -140,16 +174,19 @@ def save_out_data(out, save_dir, prefix=''):
     # 将 Tensor 转换为 numpy 数组，并分离梯度
     out_bak = out
     out_np = out_bak.detach().cpu().numpy()
+
     # 保存 out 为 .npy 和 .mat 格式
     np.save(os.path.join(save_dir, f'{prefix}out.npy'), out_np)
     savemat(os.path.join(save_dir, f'{prefix}out.mat'), {'out': out_np})
+    
     # 将 k-space 数据转换到图像域
     # out_image = kspace_to_image(out_np)
-    out_image = kspace_to_image(out_bak)
+    out_image = kspace_to_image(out)
     # 保存 out为图像
     save_data(out_image, save_dir, prefix, 'out_image')
+
     print(f"Saved out data to {save_dir} with prefix '{prefix}'")
-     
+    
 # k 是当前 k 空间数据，k0 是原始采样数据，mask 是采样掩码。
 # def data_consistency(k, k0, mask, noise_lvl=None, save_dir=None, prefix=''):
 def data_consistency(k, k0, mask, noise_lvl=None, save_dir=None, prefix='', save_last=False):
@@ -171,11 +208,17 @@ def data_consistency(k, k0, mask, noise_lvl=None, save_dir=None, prefix='', save
         out = (1 - mask) * k + mask * (k + v * k0) / (1 + v)
     else:  # noiseless case
         out = (1 - mask) * k + mask * k0
-    # 如果需要保存数据（仅在最后一个 batch 的最后一个 epoch 保存）
+
+    # 如果需要保存输出数据
+    # if save_dir:
+    #     save_out_data(out, save_dir, prefix)a
+     # 如果需要保存数据（仅在最后一个 batch 的最后一个 epoch 保存）
     if save_last and save_dir:
         save_k_space_data(k, k0, mask, save_dir, prefix)
         save_out_data(out, save_dir, prefix)
     return out
+
+
 class DataConsistencyInKspace(nn.Module):
     """ Create data consistency operator
 
@@ -193,6 +236,7 @@ class DataConsistencyInKspace(nn.Module):
     def forward(self, *input, **kwargs):
         return self.perform(*input)
 
+    # def perform(self, x, k0, mask):
     # net['t%d_out' % i] = self.dcs[i - 1].perform(net['t%d_out' % i], k, m, save_last=save_last)
     def perform(self, x, k0, mask, model_save_dir=False,save_last=False):
         """
@@ -317,24 +361,24 @@ class DataConsistencyInKspace(nn.Module):
         # print("data_consistency x_res - mean:", torch.mean(torch.abs(x_res)).item())
 
 
-        # 将实部和虚部合并为复数张量
+         # 将实部和虚部合并为复数张量
         x_complex = torch.view_as_complex(x.contiguous()) #torch.Size([1, 30, 256, 256])
-        # print('perform-x_complex-shape:',x_complex.shape) #torch.Size([4, 18, 192, 192])
-        # print('perform-x_complex-dtype:',x_complex.dtype) #torch.complex64
+        print('perform-x_complex-shape:',x_complex.shape) #perform-x_complex-shape: torch.Size([1, 30, 256, 256])
+        print('perform-x_complex-dtype:',x_complex.dtype) #perform-x_complex-dtype: torch.complex64
         x_kspace = fft2c(x_complex)
         k = torch.view_as_real(x_kspace)  # [batch_size, t,nx, ny, 2]
-        # print('perform-k-shape:',k.shape) #torch.Size([4, 18, 192, 192, 2])
-        # print('perform-k-dtype:',k.dtype) #torch.float32
+        print('perform-k-shape:',k.shape) #perform-k0-shape: torch.Size([1, 30, 256, 256, 2])
+        print('perform-k-dtype:',k.dtype) #perform-k0-dtype: torch.float32
         # k = torch.fft.fft2(x, dim=(-3, -2), norm='ortho' if self.normalized else 'backward')
         # k = torch.fft(x, 2, normalized=self.normalized)
         out = data_consistency(k, k0, mask, self.noise_lvl, save_dir=model_save_dir, prefix=prefix, save_last=save_last)
-        # print('perform-out-shape:',out.shape) #torch.Size([4, 18, 192, 192, 2])
-        # print('perform-out-dtype:',out.dtype) #torch.float32
+        print('perform-out-shape:',out.shape) #perform-out-shape: torch.Size([1, 30, 256, 256, 2])
+        print('perform-out-dtype:',out.dtype) #perform-out-dtype: torch.complex64
         out_complex = torch.view_as_complex(out.contiguous())
         out_complex_img = ifft2c(out_complex)
         x_res = torch.view_as_real(out_complex_img)
-        # print('perform-x_res-shape:',x_res.shape) #torch.Size([4, 18, 192, 192, 2])
-        # print('perform-x_res-dtype:',x_res.dtype) #torch.float32
+        print('perform-x_res-shape:',x_res.shape) #perform-out-shape: torch.Size([1, 30, 256, 256, 2])
+        print('perform-x_res-dtype:',x_res.dtype) #perform-out-dtype: torch.complex64
 
         if x.dim() == 4:
             x_res = x_res.permute(0, 3, 1, 2)

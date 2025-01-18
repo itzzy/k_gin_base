@@ -24,12 +24,6 @@ from utils.dnn_io import from_tensor_format
 from torch.autograd import Variable
 from utils.metric import complex_psnr
 from torch.cuda.amp import autocast, GradScaler
-# from utils.fastmriBaseUtils import ifft2c
-# 处理tensor数据
-from utils.mri_related import fft2c,ifft2c
-# 处理numpy数据
-from utils.mymath import fft2c  as fft2c_numpy,ifft2c as ifft2c_numpy
-from torch.utils.data import random_split
 
 
 from torch.utils.tensorboard import SummaryWriter
@@ -45,7 +39,7 @@ os.environ['PYTORCH_CUDA_ALLOC_CONF'] = 'expandable_segments:True'
 # os.environ["CUDA_VISIBLE_DEVICES"] = "3" #,0,1,2,4,5,6,7
 # os.environ['CUDA_VISIBLE_DEVICES'] = '1'  # 指定使用 GPU 1 和 GPU 4
 # os.environ['CUDA_VISIBLE_DEVICES'] = '6'  # 指定使用 GPU 1 和 GPU 4
-os.environ['CUDA_VISIBLE_DEVICES'] = '5'  # 指定使用 GPU 1 和 GPU 4
+os.environ['CUDA_VISIBLE_DEVICES'] = '4'  # 指定使用 GPU 1 和 GPU 4
 
 # 设置环境变量 CUDA_VISIBLE_DEVICES  0-5(nvidia--os) 2-6 3-7
 # os.environ['CUDA_VISIBLE_DEVICES'] = '0,1'  # 指定使用 GPU 1 和 GPU 4
@@ -59,7 +53,7 @@ cuda = True if torch.cuda.is_available() else False
 Tensor = torch.cuda.FloatTensor if cuda else torch.Tensor
 criterion = torch.nn.MSELoss()
 
-# nohup python train_dcrnn_test.py --config config_dcrnn_test.yaml > log_0107.txt 2>&1 &
+
 class TrainerAbstract:
     def __init__(self, config):
         print("TrainerAbstract initialized.")
@@ -72,7 +66,6 @@ class TrainerAbstract:
         
         self.model_name_run = config.general.model_name_run
         self.model_name_run_test =config.general.model_name_run_test
-        self.model_save_dir = config.general.model_save_dir
 
         self.start_epoch = 0
         self.only_infer = config.general.only_infer
@@ -92,14 +85,8 @@ class TrainerAbstract:
 
         # data
         # train_ds = CINE2DT(config=config.data, mode='train')
-        # train_ds = CINE2DT(config=config.data, mode='val')
+        train_ds = CINE2DT(config=config.data, mode='val')
         test_ds = CINE2DT(config=config.data, mode='val')
-        # 测试数据分位训练集:测试集 = 8:2 计算训练集和测试集的大小
-        total_size = len(test_ds)
-        train_size = int(0.8 * total_size)  # 80% 用于训练
-        test_size = total_size - train_size  # 20% 用于测试
-        # 使用 random_split 划分数据集
-        train_ds, test_ds = random_split(test_ds, [train_size, test_size])
         self.train_loader = DataLoader(dataset=train_ds, num_workers=config.training.num_workers, drop_last=False,
                                        pin_memory=True, batch_size=config.training.batch_size, shuffle=True)
         self.test_loader = DataLoader(dataset=test_ds, num_workers=2, drop_last=False, batch_size=1, shuffle=False)
@@ -230,7 +217,6 @@ class TrainerKInterpolator(TrainerAbstract):
             # train_one_epoch-im_groudtruth torch.Size([2, 2, 192, 192, 18])
             # print('train_one_epoch-im_undersample', im_undersample.shape)
             # print('train_one_epoch-k_undersample', k_undersample.shape)
-            # train_one_epoch-mask torch.Size([4, 2, 192, 192, 18])
             # print('train_one_epoch-mask', mask.shape)
             # print('train_one_epoch-im_groudtruth', im_groudtruth.shape)
             self.optimizer.zero_grad()
@@ -241,6 +227,9 @@ class TrainerKInterpolator(TrainerAbstract):
             with autocast():
                 im_recon = self.network(im_undersample, k_undersample,mask,test=False)  # size of kspace and mask: [B, T, H, W]
                 # print('train_one_epoch-im_recon-loss',im_recon.requires_grad) 
+                # train_one_epoch-im_recon torch.Size([2, 2, 192, 192, 18])
+                # print('train_one_epoch-im_recon', im_recon.shape)
+                # train_one_epoch-im_recon torch.Size([4, 18, 192, 192])
                 # train_one_epoch-im_recon torch.Size([2, 2, 192, 192, 18])
                 # train_one_epoch-im_recon-dtype: torch.float32
                 # print('train_one_epoch-im_recon-dtype:', im_recon.dtype)
@@ -272,10 +261,9 @@ class TrainerKInterpolator(TrainerAbstract):
             is_last_epoch = (epoch == self.num_epochs - 1)
             is_last_batch = (i == len(self.train_loader) - 1)
             save_last = is_last_epoch and is_last_batch
-            # print('train_one_epoch-save_last:',save_last)
+            print('train_one_epoch-save_last:',save_last)
             # 保存最后一个 epoch 和最后一个 batch 的数据
             if save_last:
-                print('train_one_epoch-save_last:',save_last)
                 save_last_batch_data(im_undersample,k_undersample,mask,im_groudtruth,save_dir_run)
         # 在每个epoch结束时记录平均损失
         self.writer.add_scalar('Training/Average_Loss', epoch_loss, epoch)
@@ -326,14 +314,13 @@ class TrainerKInterpolator(TrainerAbstract):
                 is_last_epoch = (epoch == self.num_epochs- 1)
                 is_last_batch = (i == len(self.test_loader) - 1)
                 save_last = is_last_epoch and is_last_batch
-                # print('run-test-save_last:',save_last)
+                print('run-test-save_last:',save_last)
                 # 网络预测
                 # im_recon = self.network(im_u, k_u, mask, test=False)
                 # 使用 autocast 进行混合精度推理
                 with autocast():
                     # im_recon = self.network(im_u, k_u, mask, test=False)
-                    # im_recon = self.network(im_u, k_u, mask, test=True, save_last=save_last)
-                    im_recon = self.network(im_u, k_u, mask, test=True, model_save_dir=self.model_save_dir,save_last=save_last)
+                    im_recon = self.network(im_u, k_u, mask, test=True, save_last=save_last)
                     # print('train_one_epoch-im_recon-test-loss:',im_recon.requires_grad)
                 '''
                 run_test-im_recon-shape: torch.Size([1, 2, 192, 192, 18])
@@ -414,31 +401,12 @@ def save_last_batch_data(im_undersample,k_undersample,mask,im_groudtruth,save_di
     # train_one_epoch-mask torch.Size([2, 2, 192, 192, 18])
     # train_one_epoch-im_groudtruth torch.Size([2, 2, 192, 192, 18])
     # print('train_one_epoch-im_undersample', im_undersample.shape)
-    # train_one_epoch-k_undersample torch.Size([2, 2, 192, 192, 18])
-    print('save_last_batch_data-k_undersample-shape:', k_undersample.shape)
-    print('save_last_batch_data-k_undersample-dtype:', k_undersample.dtype)
+    # print('train_one_epoch-k_undersample', k_undersample.shape)
     # print('train_one_epoch-mask', mask.shape)
     # print('train_one_epoch-im_groudtruth', im_groudtruth.shape)
-    # 将 Tensor 转换为 numpy 数组  k_undersample为五维tensor
-    k_undersample_permute = k_undersample.permute(0, 4, 2, 3,1)
-    print('save_last_batch_data-k_undersample_permute', k_undersample_permute.shape)
-    k_undersamplex_complex = torch.view_as_complex(k_undersample_permute.contiguous()) #torch.Size([1, 30, 256, 256])
-    print('save_last_batch_data-k_undersamplex_complex-shape:', k_undersamplex_complex.shape)
-    print('save_last_batch_data-k_undersamplex_complex-dtype:', k_undersamplex_complex.dtype)
-    # x_kspace = fft2c(x_complex)
-    # Adjusted shape of k_undersample: torch.Size([2, 2, 18, 192, 192])
-    # print("Adjusted shape of k_undersample:", k_undersample.shape) # nb, nc, nt, nx, ny
-    # nb, nc, nt, nx, ny = x.size()  # 获取输入张量的维度
-    k_undersample_img = ifft2c(k_undersamplex_complex)
-    print('save_last_batch_data-k_undersample_img-shape:', k_undersample_img.shape)
-    print('save_last_batch_data-k_undersample_img-dtype:', k_undersample_img.dtype)
-    # k_undersample_res = k_undersample_res.permute(0,1,3,4,2)
-    # Adjusted shape of k_undersample_res: torch.Size([2, 2, 192, 192, 18])
-    # print("Adjusted shape of k_undersample_res:", k_undersample_res.shape) # nb, nc, nt, nx, ny
-        
+    # 将 Tensor 转换为 numpy 数组
     im_undersample_np = im_undersample.cpu().numpy()
-    # k_undersample_np = k_undersample.cpu().numpy()
-    k_undersample_np = k_undersample_img.cpu().numpy()
+    k_undersample_np = k_undersample.cpu().numpy()
     mask_np = mask.cpu().numpy()
     groudtruth_np = im_groudtruth.cpu().numpy()
 
@@ -464,33 +432,32 @@ def save_last_batch_data(im_undersample,k_undersample,mask,im_groudtruth,save_di
     plt.imsave(join(train_output_dir, 'groudtruth.png'), np.abs(groudtruth_np[0, 0, :, :, 0]), cmap='gray')
 
     # 将 k-space 数据转换到图像域并保存
-    # k_undersample_complex = k_undersample_np[0, 0, :, :, 0] + 1j * k_undersample_np[0, 1, :, :, 0]
-    # image_from_k_space = np.fft.ifft2(k_undersample_complex)
-    # image_from_k_space = np.abs(k_undersample_np[0,0,:,:,0])
-    image_from_k_space = np.abs(k_undersample_np[0,0,:,:])
+    k_undersample_complex = k_undersample_np[0, 0, :, :, 0] + 1j * k_undersample_np[0, 1, :, :, 0]
+    image_from_k_space = np.fft.ifft2(k_undersample_complex)
+    image_from_k_space = np.abs(image_from_k_space)
     plt.imsave(join(train_output_dir, 'image_from_k_space.png'), image_from_k_space, cmap='gray')
     print(f"Saved im_undersample, k_undersample, mask, and groudtruth to {train_output_dir}")
     
     
-# def c2r(kspace):
-#     """
-#     将复数形式的kspace张量转换为五维实数形式张量，新增第二个维度（大小为2）来分别表示实部和虚部。
-#     参数:
-#     kspace (torch.Tensor): 复数形式的张量，形状为 (batch_size, time_steps, height, width)，数据类型为torch.complex64等复数类型
-#     返回:
-#     torch.Tensor: 转换后的实数形式张量，形状为 (batch_size, 2, time_steps, height, width)，数据类型为torch.float32
-#     """
-#     # 使用torch.view_as_real将复数张量转换为实部和虚部的表示形式
-#     # 结果的形状变为 (batch_size, time_steps, 2, height, width)，其中最后一个维度的2表示实部和虚部
-#     kspace_real_imag = torch.view_as_real(kspace)
-#     # c2r-kspace_real_imag-shape-1: torch.Size([4, 18, 192, 192, 2])
-#     # print('c2r-kspace_real_imag-shape-1:',kspace_real_imag.shape)
+def c2r(kspace):
+    """
+    将复数形式的kspace张量转换为五维实数形式张量，新增第二个维度（大小为2）来分别表示实部和虚部。
+    参数:
+    kspace (torch.Tensor): 复数形式的张量，形状为 (batch_size, time_steps, height, width)，数据类型为torch.complex64等复数类型
+    返回:
+    torch.Tensor: 转换后的实数形式张量，形状为 (batch_size, 2, time_steps, height, width)，数据类型为torch.float32
+    """
+    # 使用torch.view_as_real将复数张量转换为实部和虚部的表示形式
+    # 结果的形状变为 (batch_size, time_steps, 2, height, width)，其中最后一个维度的2表示实部和虚部
+    kspace_real_imag = torch.view_as_real(kspace)
+    # c2r-kspace_real_imag-shape-1: torch.Size([4, 18, 192, 192, 2])
+    # print('c2r-kspace_real_imag-shape-1:',kspace_real_imag.shape)
 
-#     # 调整维度顺序，将表示实部和虚部的维度放到第二个维度，同时把time_steps维度调整到最后
-#     # 转换后的形状变为 (batch_size, 2, height, width, time_steps)
-#     kspace_real_imag = kspace_real_imag.permute(0, 4, 2, 3, 1)
-#     # print('c2r-kspace_real_imag-shape-2:',kspace_real_imag.shape)
-#     return kspace_real_imag
+    # 调整维度顺序，将表示实部和虚部的维度放到第二个维度，同时把time_steps维度调整到最后
+    # 转换后的形状变为 (batch_size, 2, height, width, time_steps)
+    kspace_real_imag = kspace_real_imag.permute(0, 4, 2, 3, 1)
+    # print('c2r-kspace_real_imag-shape-2:',kspace_real_imag.shape)
+    return kspace_real_imag
 
 def prep_input(im, acc=4.0):
     """
@@ -522,25 +489,23 @@ def prep_input(im, acc=4.0):
     # print('prep_input-mask-dtype:', mask.dtype)
     # 对 mask 进行转置操作  class CINE2DT(torch.utils.data.Dataset)有以下代码：
     # self.mask = np.transpose(self.mask,[1,0])
-    # mask = np.transpose(mask,[1,0]) #prep_input-mask-shape: (18,192)
+    mask = np.transpose(mask,[1,0])
     
     mask = np.expand_dims(mask, axis=0)  # 添加 batch 维度
     mask = np.expand_dims(mask, axis=0)  # 添加 time 维度
     # mask = np.tile(mask, (batch_size, time, 1, 1))  # 广播到完整形状
     # 得到的mask: (2, 192, 192, 18) (2, 192, 18, 192)
     mask = np.tile(mask, (batch_size, width, 1, 1))  # 广播到完整形状
-    # print('prep_iuput-mask:',mask.shape) #prep_iuput-mask: (4, 192, 192, 18)
     # AttributeError: 'numpy.ndarray' object has no attribute 'permute'
     # mask = mask.permute(0,3,2,1)
     # 将 NumPy 数组转换为 PyTorch 张量
     mask_tensor = torch.from_numpy(mask)
 
     # 使用 permute 方法重新排列维度
-    mask_permuted = mask_tensor.permute(0, 3, 1, 2)
-    # mask_permuted = mask_tensor.permute(0, 2, 1, 3)
+    # mask_permuted = mask_tensor.permute(0, 3, 2, 1)
+    mask_permuted = mask_tensor.permute(0, 2, 1, 3)
     # prep_input-mask_permuted-shape: torch.Size([2, 18, 192, 192])
-    # prep_input-mask_permuted-shape: torch.Size([4, 18, 192, 192])
-    # print('prep_input-mask_permuted-shape:', mask_permuted.shape) 
+    # print('prep_input-mask_permuted-shape:', mask_permuted.shape)
     
     # 将 mask 转为 torch.Tensor，并调整为网络接受的格式
     # mask_l = torch.from_numpy(mask).to(dtype=torch.float32)  # 转换数据类型为 float32
@@ -550,12 +515,10 @@ def prep_input(im, acc=4.0):
     # print('prep_input-mask_l-dtype:', mask_l.dtype)
     # mask_l = torch.from_numpy(to_tensor_format(mask, mask=True))
     # mask_l = torch.from_numpy(to_tensor_format(mask, mask=True))
-    # prep_iuput-mask: (4, 192, 192, 18)
     mask_l = torch.from_numpy(to_tensor_format(mask, mask=True))
-    # prep_input-mask_l-shape-1: torch.Size([2, 2, 18, 192,192])
+    # prep_input-mask_l-shape-1: torch.Size([2, 2, 192, 18, 192])
     # prep_input-mask_l-dtype-1: torch.float64
-    # mask_l = mask_l.permute(0, 1, 3,4,2)
-    mask_l = mask_l.permute(0, 1,4,2,3)
+    mask_l = mask_l.permute(0, 1, 2, 4, 3)
     # prep_input-mask_l-shape-1: torch.Size([1, 2, 192, 192, 18])
     # prep_input-mask_l-dtype-1: torch.float64
     # print('prep_input-mask_l-shape-1:',mask_l.shape)
@@ -577,7 +540,6 @@ def prep_input(im, acc=4.0):
     # im_und, k_und = cs.undersample(im_np, mask_np, centred=True, norm='ortho')
     # prep_input-im_und-shape: (1, 18, 192, 192)
     # print('prep_input-im_und-shape:', im_und.shape)
-    # print('prep_input-im_und-dtype:', im_und.dtype) #complex128
  
     im_gnd_l = torch.from_numpy(to_tensor_format(im))
     im_und_l = torch.from_numpy(to_tensor_format(im_und))
@@ -593,8 +555,9 @@ def prep_input(im, acc=4.0):
     # mask_l = torch.from_numpy(mask.astype(np.float32))  # 转换数据类型为float32（假设符合后续要求，根据实际调整）
     # if len(mask_l.shape) == 3:  # 如果mask_l维度是3维，添加通道维度等操作（根据实际网络输入要求调整）
     #     mask_l = mask_l.unsqueeze(1)  # 在维度1的位置添加通道维度，假设符合网络对mask输入维度要求
-    # prep_input-mask_l-shape-2: torch.Size([1, 2, 192, 192, 18])
     # print('prep_input-mask_l-shape-2:', mask_l.shape)
+    # print('prep_input-mask_l-dtype:-2', mask_l.dtype)
+
     return im_und_l, k_und_l, mask_l, im_gnd_l
 
 

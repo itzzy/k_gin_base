@@ -576,7 +576,7 @@ class CRNN_MRI(nn.Module):
             # CRNN_MRI-x-2:dtype torch.complex64
             # CRNN_MRI-x-2:shape torch.Size([4, 2, 256, 256, 30])
             # print('CRNN_MRI-x-2:dtype',x.dtype)
-            # print('CRNN_MRI-x-2:shape',x.shape) #torch.Size([4, 2, 192, 192, 18])
+            print('CRNN_MRI-x-2:shape',x.shape)
 
             # clean up i-1
             if test:

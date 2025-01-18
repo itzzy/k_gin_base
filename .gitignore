@@ -68,6 +68,7 @@ cineJENSE/
 runs/
 log/
 tmp/
+saved_data/
 dataset/dataloader.py.0618
 
 # Django stuff:

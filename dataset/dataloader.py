@@ -3,6 +3,7 @@ import torchvision
 from utils import load_mask, ToTorchIO, multicoil2single
 from dataset.transforms import *
 from scipy.io import loadmat
+from utils.fastmriBaseUtils import *
 
 
 # class CINE2DTBase(object):
@@ -136,7 +137,35 @@ class CINE2DT(torch.utils.data.Dataset):
         coilmaps = self._csm[index, :]
         # 获取采样掩码，并将其转换为 np.int32 类型。
         sampling_mask = self.mask.astype(np.int32)
+        # CINE2DT-kspace-shape:, (20, 18, 192, 192)
+        # CINE2DT-coilmaps-shape:, (20, 1, 192, 192)
+        # CINE2DT-sampling_mask-shape:, (18, 192)
+        # print('CINE2DT-kspace-shape:,',kspace.shape)
+        # print('CINE2DT-coilmaps-shape:,',coilmaps.shape)
+        # print('CINE2DT-sampling_mask-shape:,',sampling_mask.shape)
+        # 调整 kspace 的维度
+        # kspace = np.transpose(kspace, (1, 0, 2, 3))  # 从 (20, 18, 192, 192) 调整为 (18, 20, 192, 192)
+
+        # 调整 sampling_mask 的维度
+        # 原始 sampling_mask 的形状是 (18, 192)
+       # 原始 sampling_mask 的形状是 (18, 192)
+        # sampling_mask = np.expand_dims(sampling_mask, axis=1)  # 从 (18, 192) 调整为 (18, 1, 192)
+        # sampling_mask = np.expand_dims(sampling_mask, axis=-1)  # 从 (18, 1, 192) 调整为 (18, 1, 192, 1)
+        # sampling_mask = np.tile(sampling_mask, (1, 20, 1, 192))  # 复制到每个通道和空间维度，调整为 (18, 20, 192, 192)
+        # # print('CINE2DT-sampling_mask-shape-1:,',sampling_mask.shape) #CINE2DT-sampling_mask-shape-1:, (18, 20, 192, 192)
+        # # 调用 generateUndersampled nSlice,nch,nrow,ncol=org.shape
+        # # nSlice 是切片数（时间维度）。nch 是通道数（线圈数）。nrow, ncol 是 k-space 的空间维度。
+        # orgk, atb, minv = generateUndersampled(kspace, sampling_mask)
+
+        # 打印结果
+        # print("orgk shape:", orgk.shape)  # 期望输出: (18, 20, 192, 192)
+        # print("atb shape:", atb.shape)    # 期望输出: (18, 20, 192, 192)
+        # print("minv shape:", minv.shape)  # 期望输出: (18,)
+        # print('CINE2DT-sampling_mask-shape-2:,',sampling_mask.shape) #CINE2DT-sampling_mask-shape-2:, (18, 20, 192, 192)
+        # kspace = np.transpose(kspace, (1, 0, 2, 3))  # 从 (18, 20, 192, 192) 调整为 (20, 18, 192, 192)
+        # orgk = np.transpose(orgk, (1, 0, 2, 3))  # 从 (18, 20, 192, 192) 调整为 (20, 18, 192, 192)
         return kspace, coilmaps,sampling_mask
+        # return kspace, orgk,coilmaps,sampling_mask
 
     def __len__(self):
         # 返回标签数据的第一个维度的大小，即数据集的大小。
