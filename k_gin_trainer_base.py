@@ -84,7 +84,7 @@ class TrainerAbstract:
         train_sampler = torch.utils.data.distributed.DistributedSampler(train_ds)
         test_sampler = torch.utils.data.distributed.DistributedSampler(test_ds)
         self.train_loader = torch.utils.data.DataLoader(dataset=train_ds, num_workers=config.training.num_workers, drop_last=False,batch_size=config.training.batch_size, sampler=train_sampler)
-        self.test_loader = DataLoader(dataset=test_ds, num_workers=2, drop_last=False, batch_size=1, sampler=test_sampler)
+        self.test_loader = DataLoader(dataset=test_ds, num_workers=2, drop_last=False, batch_size=2, sampler=test_sampler)
 
         # 重新定义模型之前
         torch.cuda.empty_cache()

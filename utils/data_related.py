@@ -61,6 +61,12 @@ torch.ones_like(kspace) 的作用需要根据 MulticoilAdjointOp 的具体实现
 这行代码是多通道 MRI 重建中的一个关键步骤。  
 MulticoilAdjointOp 很可能是一个基于某种算法（例如，最小二乘法或压缩感知）实现的自定义函数或类。
 '''
+# def multicoil2single(kspace, coilmaps):
+#     img = MulticoilAdjointOp(center=True, coil_axis=-4, channel_dim_defined=False)(kspace, torch.ones_like(kspace), coilmaps)
+#     img /= img.abs().max()
+#     kspace = fft2c(img)
+#     return kspace, img
+
 def multicoil2single(kspace, coilmaps):
     img = MulticoilAdjointOp(center=True, coil_axis=-4, channel_dim_defined=False)(kspace, torch.ones_like(kspace), coilmaps)
     img /= img.abs().max()

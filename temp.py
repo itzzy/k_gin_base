@@ -9,9 +9,9 @@ from numpy.lib.stride_tricks import as_strided
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.animation import FuncAnimation
-from UTILS import IFFT2c, FFT2c
+# from UTILS import IFFT2c, FFT2c
 from scipy.io import loadmat
-
+from utils.fastmriBaseUtils import IFFT2c, FFT2c
 ####################################################
 #data = np.load('/data0/chentao/data/LplusSNet/data/20coil/k_cine_multicoil_test.npy')
 #csm = np.load('/data0/chentao/data/LplusSNet/data/20coil/csm_cine_multicoil_test.npy')
@@ -88,48 +88,48 @@ from scipy.io import loadmat
 ###################################################
 
 
-data = np.load('/data0/chentao/data/LplusSNet/data/20coil/k_cine_multicoil_test.npy')
-csm = np.load('/data0/chentao/data/LplusSNet/data/20coil/csm_cine_multicoil_test.npy')
-print("data:", data.shape) #data: (800, coil=20, 18, 192, 192) (t,h,w)=(18, 192, 192)
-data = data[100,:,:,:,:]
-csm = csm[100,:,:,:,:] 
+# data = np.load('/data0/chentao/data/LplusSNet/data/20coil/k_cine_multicoil_test.npy')
+# csm = np.load('/data0/chentao/data/LplusSNet/data/20coil/csm_cine_multicoil_test.npy')
+# print("data:", data.shape) #data: (800, coil=20, 18, 192, 192) (t,h,w)=(18, 192, 192)
+# data = data[100,:,:,:,:]
+# csm = csm[100,:,:,:,:] 
 
-C =loadmat('/data0/huayu/Aluochen/Mypaper5/e_192x18_acs4_R4.mat')
-mask = C['mask'][:]
-mask = np.transpose(mask,[1,0])
-mask = np.expand_dims(mask, axis=1)
-print('mask',mask.shape)
+# C =loadmat('/data0/huayu/Aluochen/Mypaper5/e_192x18_acs4_R4.mat')
+# mask = C['mask'][:]
+# mask = np.transpose(mask,[1,0])
+# mask = np.expand_dims(mask, axis=1)
+# print('mask',mask.shape)
 
-data = data*mask
-img = np.expand_dims(np.sum(IFFT2c(data) * np.conj(csm), axis=0), axis=0) #
-print("img:", img.shape)
-ksp = FFT2c(img)
+# data = data*mask
+# img = np.expand_dims(np.sum(IFFT2c(data) * np.conj(csm), axis=0), axis=0) #
+# print("img:", img.shape)
+# ksp = FFT2c(img)
 
-#for i in range(ksp.shape[3]):
-#    
-#    for j in range(mask.shape[3]):
-ksp[:, 10:15, :, 96:100] = ksp[:, 12:13, :, 96:100]
-img = np.expand_dims(np.sum(ksp[:,10:15,:,:], axis=1), axis=1) / np.expand_dims(np.sum(mask[10:15,:,:], axis=0), axis=0)
-#img = np.expand_dims(np.sum(ksp, axis=1), axis=1) / np.expand_dims(np.sum(mask, axis=0), axis=0)
-#img = np.mean(ksp, axis=1, keepdims=True)
-print("img:", img.shape)
-#img = np.repeat(img, repeats=2, axis=1)
+# #for i in range(ksp.shape[3]):
+# #    
+# #    for j in range(mask.shape[3]):
+# ksp[:, 10:15, :, 96:100] = ksp[:, 12:13, :, 96:100]
+# img = np.expand_dims(np.sum(ksp[:,10:15,:,:], axis=1), axis=1) / np.expand_dims(np.sum(mask[10:15,:,:], axis=0), axis=0)
+# #img = np.expand_dims(np.sum(ksp, axis=1), axis=1) / np.expand_dims(np.sum(mask, axis=0), axis=0)
+# #img = np.mean(ksp, axis=1, keepdims=True)
+# print("img:", img.shape)
+# #img = np.repeat(img, repeats=2, axis=1)
 
-img = IFFT2c(img)
-img = img[0] 
+# img = IFFT2c(img)
+# img = img[0] 
 
-img_max = np.max(np.abs(img))
-img_norm = np.abs(img) / img_max
-brightness_factor = 3
-img_brightened = np.clip(img_norm * brightness_factor, 0, 1)
+# img_max = np.max(np.abs(img))
+# img_norm = np.abs(img) / img_max
+# brightness_factor = 3
+# img_brightened = np.clip(img_norm * brightness_factor, 0, 1)
 
-def animate(frame):
-    plt.imshow(img_brightened[frame], cmap='gray')  
-    plt.title('Frame {}'.format(frame))
-    plt.axis('off')
+# def animate(frame):
+#     plt.imshow(img_brightened[frame], cmap='gray')  
+#     plt.title('Frame {}'.format(frame))
+#     plt.axis('off')
 
-anim = FuncAnimation(plt.figure(), animate, frames=len(img_brightened), interval=500)
-anim.save('test0F.gif', writer='imagemagick')
+# anim = FuncAnimation(plt.figure(), animate, frames=len(img_brightened), interval=500)
+# anim.save('test0F.gif', writer='imagemagick')
 
 
 #def normal_pdf(length, sensitivity):
@@ -192,12 +192,14 @@ def get_cine_mask(acc, acs_lines, x=232, y=256):
 #
    mask_datadict = {'mask': np.squeeze(new_matrix)}
 ##    scio.savemat('random_368x368_mask4x_8line.mat', mask_datadict)  #
-   scio.savemat('/data0/huayu/Aluochen/Mypaper5/e_192x18_acs4_R4.mat', mask_datadict)
+   # scio.savemat('/data0/huayu/Aluochen/Mypaper5/e_192x18_acs4_R10.mat', mask_datadict)
+   scio.savemat('/nfs/zzy/code/k_gin_base/masks/VISTA/e_192x18_acs4_acs_lines4_R12.mat',mask_datadict)
+   print('save success')
 
 
 
 def main():
-   get_cine_mask(acc=4, acs_lines=4, x=18, y=192)
+   get_cine_mask(acc=12, acs_lines=4, x=18, y=192)
 #
-#if __name__ == '__main__':
-#    sys.exit(main())
+if __name__ == '__main__':
+   sys.exit(main())

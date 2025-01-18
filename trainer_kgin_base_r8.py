@@ -32,6 +32,7 @@ os.environ['CUDA_VISIBLE_DEVICES'] = '2'  # 指定使用 GPU 1 和 GPU 4
 # os.environ['CUDA_VISIBLE_DEVICES'] = '1,4'  # 指定使用 GPU 4 和 GPU 7
 # os.environ['CUDA_VISIBLE_DEVICES'] = '1,3'  # 指定使用 GPU 4 和 GPU 6
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+# nohup python train_kgin_base_r8.py --config config_kgin_base.yaml > log_0107_test.txt 2>&1 &
 
 class TrainerAbstract:
     def __init__(self, config):
@@ -149,21 +150,21 @@ class TrainerKInterpolator(TrainerAbstract):
         for i, (kspace, coilmaps, sampling_mask) in enumerate(self.train_loader):
             kspace,coilmaps,sampling_mask = kspace.to(device), coilmaps.to(device), sampling_mask.to(device)
             # train_one_epoch-kspace torch.Size([4, 20, 18, 192, 192])
-            # 18对应t 20-线圈数 4-slice
-            print('train_one_epoch-kspace', kspace.shape)
+            # 18对应t 20-线圈数 4-batc_size
+            # print('train_one_epoch-kspace', kspace.shape)
             # train_one_epoch-coilmaps torch.Size([4, 20, 1, 192, 192])
-            print('train_one_epoch-coilmaps', coilmaps.shape)
+            # print('train_one_epoch-coilmaps', coilmaps.shape)
             # train_one_epoch-sampling_mask torch.Size([4, 18, 192])
-            print('train_one_epoch-sampling_mask', sampling_mask.shape)
+            # print('train_one_epoch-sampling_mask', sampling_mask.shape)
             ref_kspace, ref_img = multicoil2single(kspace, coilmaps)
             # train_one_epoch-ref_kspace torch.Size([4, 18, 192, 192])
-            print('train_one_epoch-ref_kspace', ref_kspace.shape)
+            # print('train_one_epoch-ref_kspace', ref_kspace.shape)
             # train_one_epoch-ref_kspace-dtype: torch.complex64
-            print('train_one_epoch-ref_kspace-dtype:', ref_kspace.dtype)
+            # print('train_one_epoch-ref_kspace-dtype:', ref_kspace.dtype)
             # train_one_epoch-ref_img torch.Size([4, 18, 192, 192])
-            print('train_one_epoch-ref_img', ref_img.shape)
+            # print('train_one_epoch-ref_img', ref_img.shape)
             # train_one_epoch-ref_img-dtype: torch.complex64
-            print('train_one_epoch-ref_img-dtype:', ref_img.dtype)
+            # print('train_one_epoch-ref_img-dtype:', ref_img.dtype)
             # kspace = ref_kspace*torch.unsqueeze(sampling_mask, dim=2) #[1,18,1,192]
             kspace = ref_kspace
             # kspace_real = c2r(kspace)
@@ -181,10 +182,10 @@ class TrainerKInterpolator(TrainerAbstract):
                 # AttributeError: 'list' object has no attribute 'shape'
                 # print('train_one_epoch-k_recon_2ch', k_recon_2ch.shape)
                 # train_one_epoch-im_recon torch.Size([4, 18, 192, 192])
-                print('train_one_epoch-im_recon', im_recon.shape)
+                # print('train_one_epoch-im_recon', im_recon.shape)
                 sampling_mask = sampling_mask.repeat_interleave(ref_kspace.shape[2], 2)
                 # train_one_epoch-sampling_mask-2 torch.Size([4, 18, 36864])
-                print('train_one_epoch-sampling_mask-2', sampling_mask.shape)
+                # print('train_one_epoch-sampling_mask-2', sampling_mask.shape)
                 ls = self.train_criterion(k_recon_2ch, torch.view_as_real(ref_kspace), im_recon, ref_img, kspace_mask=sampling_mask)
 
                 self.loss_scaler(ls['k_recon_loss_combined'], self.optimizer, parameters=self.network.parameters())
@@ -250,7 +251,7 @@ class TrainerKInterpolator(TrainerAbstract):
             # np.save('out_kgin_base_0108.npy', out)
             # 尝试保存数组到文件，如果文件已存在则覆盖
             try:
-                np.save('out_kgin_base_0108.npy', out)
+                np.save('out_kgin_base_r8_0118.npy', out)
             except OSError as e:
                 print(f"An error occurred: {e}")
             self.logger.update_best_eval_results(self.logger.get_metric_value('val/psnr'))

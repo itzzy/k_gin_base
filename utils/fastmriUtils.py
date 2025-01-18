@@ -194,6 +194,7 @@ class FastMRIKneeDataSet(Dataset):
         # 生成欠采样数据  
         # 返回原始的k空间数据、欠采样的k空间数据、归一化因子 return orgk(欠采样k空间),atb（欠采样K空间图像域图像）,minv 
         # ksp, orgk, minv = generateUndersampled(ksp_idx, mask)
+        # nSlice,nch,nrow,ncol=org.shape
         orgk, atb, minv = generateUndersampled(ksp_idx, mask)
         # 将k空间数据转换为实数表示
         # ksp = c2r(ksp)
