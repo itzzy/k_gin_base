@@ -57,6 +57,8 @@ def mask_r2c(m):
 
 
 def to_tensor_format(x, mask=False):
+    # print('to_tensor_format-x-shape-0:',x.shape) #torch.Size([4, 18, 192, 192])
+    # print('to_tensor_format-x-dtype-0:',x.dtype) #torch.complex64
     """
     Assumes data is of shape (n[, nt], nx, ny).
     Reshapes to (n, n_channels, nx, ny[, nt])
@@ -72,11 +74,11 @@ def to_tensor_format(x, mask=False):
         x = x*(1+1j)
     # to_tensor_format-x-shape-1: torch.Size([2, 192, 192, 18])
     # to_tensor_format-x-dtype-1: torch.complex64
-    # print('to_tensor_format-x-shape-1:',x.shape)
-    # print('to_tensor_format-x-dtype-1:',x.dtype)
+    # print('to_tensor_format-x-shape-1:',x.shape) #(4, 192, 192, 18)
+    # print('to_tensor_format-x-dtype-1:',x.dtype) #complex64
     x = c2r(x)
-    # print('to_tensor_format-x-shape-2:',x.shape)
-    # print('to_tensor_format-x-dtype-2:',x.dtype)
+    # print('to_tensor_format-x-shape-2:',x.shape) #(4, 2, 192, 192, 18)
+    # print('to_tensor_format-x-dtype-2:',x.dtype) #float32
 
     return x
 

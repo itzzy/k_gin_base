@@ -1,6 +1,7 @@
 import numpy as np
 from . import mymath
 from numpy.lib.stride_tricks import as_strided
+from utils.fastmriBaseUtils import IFFT2c,FFT2c
 
 # from utils.mri_related import fft2c, ifft2c
 
@@ -245,7 +246,8 @@ def undersample(x, mask, centred=False, norm='ortho', noise=0):
         undersampled data in k-space
 
     '''
-    print('undersample-x-shape:',x.shape)
+    # print('undersample-x-shape:',x.shape) #undersample-x-shape: (4, 18, 192, 192)
+    # print('undersample-x-dtype:',x.dtype) #undersample-x-dtype: complex64
     assert x.shape == mask.shape
     # zero mean complex Gaussian noise
     noise_power = noise
@@ -264,9 +266,9 @@ def undersample(x, mask, centred=False, norm='ortho', noise=0):
         x_u = mymath.ifft2c(x_fu, norm=norm)
         return x_u, x_fu
     else:
-        x_f = mymath.fft2(x)
+        x_f = FFT2c(x)
         x_fu = mask * (x_f + nz)
-        x_u = mymath.ifft2(x_fu)
+        x_u = IFFT2c(x_fu)
         # 函数最终会返回欠采样后的图像数据（在图像域）和欠采样的数据（在 k 空间）
         return x_u, x_fu
 
