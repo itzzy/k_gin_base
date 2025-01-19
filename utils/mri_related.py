@@ -10,6 +10,7 @@ def ifft2(X, dim=(-2,-1)):
 
 
 def fft2c(x, dim=(-2,-1)):
+    # nx、ny需要在最后两个维度
     return torch.fft.fftshift(fft2(torch.fft.ifftshift(x, dim), dim), dim)
 
 

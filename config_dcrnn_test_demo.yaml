@@ -1,5 +1,5 @@
 general:
-  exp_name: test_dcrnn_test
+  exp_name: test_dcrnn_test_demo
   gpus: 1
   wandb_entity: 'itzzy'
   debug: False
@@ -10,10 +10,9 @@ general:
   # acc_rate: 4
   only_infer: &only_infer False
   tensorboard_log_dir: 'runs/test_dcrnn_test_tensorboard_log'
-  model_name_run: 'runs/test_dcrnn_test_run_0118_1'
-  model_name_run_test: 'runs/test_dcrnn_test_run_test_0118_1'
-  model_save_dir: 'saved_data/model_test_dcrnn_test_0118_1'
-
+  model_name_run: 'runs/test_dcrnn_test_demo_run_0117_2'
+  model_name_run_test: 'runs/test_dcrnn_test_demo_run_test_0117_2'
+  model_save_dir: 'saved_data/model_test_dcrnn_test_demo_0117_2'
 
 
 data:
@@ -50,16 +49,16 @@ data:
   only_infer: *only_infer
 
 training:
-  num_epochs: &epochs 100
-  # num_epochs: &epochs 300
-  warmup_epoch: 10
-  # warmup_epoch: 30
+  num_epochs: &epochs 60
+  # num_epochs: &epochs 2
+  # warmup_epoch: 0
+  warmup_epoch: 6
   batch_size: 4
   num_workers: 2
   # num_workers: 2
   # num_workers: 1
   # restore_ckpt: '/nfs/zzy/code/k_gin_base/experiments/test_dcrnn_test'
-  restore_ckpt: '/data0/zhiyong/code/github/itzzy_git/k_gin_base/experiments/test_dcrnn_test'
+  restore_ckpt: '/data0/zhiyong/code/github/itzzy_git/k_gin_base/experiments/test_dcrnn_test_demo'
   restore_training: False
   # restore_training: True
   use_mixed_precision: True  # differ # for complexCNN this must be set False
