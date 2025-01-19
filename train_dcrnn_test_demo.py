@@ -6,7 +6,7 @@ import os
 from utils import wandb_setup, dict2obj
 from trainer_dcrnn_test_demo import TrainerKInterpolator
 
-# nohup python train_dcrnn_test_demo.py --config config_dcrnn_test.yaml > log_0107.txt 2>&1 &
+# nohup python train_dcrnn_test_demo.py --config config_dcrnn_test_demo.yaml > log_0115_demo_1.txt 2>&1 &
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--config', default=None, help='config file (.yml) containing the hyper-parameters for inference.')
