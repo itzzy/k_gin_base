@@ -137,7 +137,7 @@ class KInterpolator(nn.Module):
             nn.init.constant_(m.weight, 1.0)
 
     def encoder(self, kspace, mask):
-        print('encoder-kspace, mask', kspace.shape, mask.shape)
+        # print('encoder-kspace, mask', kspace.shape, mask.shape)
         b, c, h, w = kspace.shape
         kspace = self.patch_embed(kspace)
 
@@ -259,14 +259,14 @@ class KInterpolator(nn.Module):
         # k, m torch.Size([1, 18, 192, 192]) torch.Size([1, 18, 192])
         
         # kspace, mask torch.Size([2, 18, 192, 192]) torch.Size([2, 18, 192, 192])
-        print('kspace, mask', img.shape, mask.shape)
+        # print('kspace, mask', img.shape, mask.shape)
         img_orig = torch.view_as_real(img)
         #vista mask使用下面的代码 mask维度[18,192,192]
         # mask_orig = mask[..., None].expand_as(img_orig)  # 将掩码扩展到与图像相同的维度
         # 随机mask使用下面的代码 mask维度[18,192]
         mask_orig = mask[..., None, None].expand_as(img_orig)  # 将掩码扩展到与图像相同的维度
         # mask_orig: torch.Size([2, 18, 192, 192, 2])
-        print('mask_orig:',mask_orig.shape)
+        # print('mask_orig:',mask_orig.shape)
         img = torch.view_as_real(torch.einsum('bthw->btwh', img)).flatten(-2)
         img = torch.einsum('bhwt->bthw', img)
         b, h_2, t, w = img.shape
@@ -281,7 +281,7 @@ class KInterpolator(nn.Module):
         # mask = mask.flatten(1,2)
         
         # mask-flatten-shape: torch.Size([2, 663552])
-        print('mask-flatten-shape:',mask.shape)
+        # print('mask-flatten-shape:',mask.shape)
 
         latent, ids_restore = self.encoder(img, mask)
         # forward-latent: torch.Size([1, 631, 512])
