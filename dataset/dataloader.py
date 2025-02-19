@@ -105,6 +105,72 @@ from utils.fastmriBaseUtils import *
 #         return data_transforms
 
 
+class CINE2DT_vista(torch.utils.data.Dataset):
+    # config: 一个配置对象，包含了数据集的路径和相关参数。
+    # mode: 表示数据集的模式，可以是 'train'、'val' 或 'test'。
+    def __init__(self, config, mode):
+        super(CINE2DT_vista, self).__init__()
+        self.mode = mode
+        # 根据数据集模式，加载对应的标签数据和卷积灵敏度图 (Coil Sensitivity Maps)。
+        if mode == 'train':
+            self._label = np.load(os.path.join(config.train_subjs)).astype(np.complex64)
+            self._csm = np.load(os.path.join(config.train_maps)).astype(np.complex64)
+        elif mode == 'val':
+            self._label = np.load(os.path.join(config.val_subjs)).astype(np.complex64)
+            self._csm = np.load(os.path.join(config.val_maps)).astype(np.complex64)
+        else:
+            raise NotImplementedError
+        # 从指定的路径加载一个 MATLAB 文件，该文件包含了采样掩码 (Mask)。
+        C =loadmat(config.mask_root)
+        # 从加载的 MATLAB 文件中获取 mask 数据，并将其保存到 self.mask 属性中。
+        #  prep_input-mask-shape: (192, 18)
+        # self.mask = C['mask'][:]
+        # vista的mask
+        self.mask = C['mask'][:, :, 0].astype(np.int32)  # 显式取第三维的索引
+        # 对 self.mask 进行转置操作。 vista的mask不用转置[18,192,192]
+        # self.mask = np.transpose(self.mask,[1,0])
+
+    def __getitem__(self, index):
+        # 获取第 index 个样本的 k-space 数据。
+        kspace = self._label[index, :]
+        # 获取第 index 个样本的卷积灵敏度图。
+        coilmaps = self._csm[index, :]
+        # 获取采样掩码，并将其转换为 np.int32 类型。
+        sampling_mask = self.mask.astype(np.int32)
+        # CINE2DT-kspace-shape:, (20, 18, 192, 192)
+        # CINE2DT-coilmaps-shape:, (20, 1, 192, 192)
+        # CINE2DT-sampling_mask-shape:, (18, 192)
+        # print('CINE2DT-kspace-shape:,',kspace.shape)
+        # print('CINE2DT-coilmaps-shape:,',coilmaps.shape)
+        # print('CINE2DT-sampling_mask-shape:,',sampling_mask.shape)
+        # 调整 kspace 的维度
+        # kspace = np.transpose(kspace, (1, 0, 2, 3))  # 从 (20, 18, 192, 192) 调整为 (18, 20, 192, 192)
+
+        # 调整 sampling_mask 的维度
+        # 原始 sampling_mask 的形状是 (18, 192)
+       # 原始 sampling_mask 的形状是 (18, 192)
+        # sampling_mask = np.expand_dims(sampling_mask, axis=1)  # 从 (18, 192) 调整为 (18, 1, 192)
+        # sampling_mask = np.expand_dims(sampling_mask, axis=-1)  # 从 (18, 1, 192) 调整为 (18, 1, 192, 1)
+        # sampling_mask = np.tile(sampling_mask, (1, 20, 1, 192))  # 复制到每个通道和空间维度，调整为 (18, 20, 192, 192)
+        # # print('CINE2DT-sampling_mask-shape-1:,',sampling_mask.shape) #CINE2DT-sampling_mask-shape-1:, (18, 20, 192, 192)
+        # # 调用 generateUndersampled nSlice,nch,nrow,ncol=org.shape
+        # # nSlice 是切片数（时间维度）。nch 是通道数（线圈数）。nrow, ncol 是 k-space 的空间维度。
+        # orgk, atb, minv = generateUndersampled(kspace, sampling_mask)
+
+        # 打印结果
+        # print("orgk shape:", orgk.shape)  # 期望输出: (18, 20, 192, 192)
+        # print("atb shape:", atb.shape)    # 期望输出: (18, 20, 192, 192)
+        # print("minv shape:", minv.shape)  # 期望输出: (18,)
+        # print('CINE2DT-sampling_mask-shape-2:,',sampling_mask.shape) #CINE2DT-sampling_mask-shape-2:, (18, 20, 192, 192)
+        # kspace = np.transpose(kspace, (1, 0, 2, 3))  # 从 (18, 20, 192, 192) 调整为 (20, 18, 192, 192)
+        # orgk = np.transpose(orgk, (1, 0, 2, 3))  # 从 (18, 20, 192, 192) 调整为 (20, 18, 192, 192)
+        return kspace, coilmaps,sampling_mask
+        # return kspace, orgk,coilmaps,sampling_mask
+
+    def __len__(self):
+        # 返回标签数据的第一个维度的大小，即数据集的大小。
+        return self._label.shape[0]
+
 # 定义了一个名为 CINE2DT 的类，用于加载和处理 CINE2D 数据集,它继承自 torch.utils.data.Dataset。
 # 这意味着该类是一个数据集类，可以被 PyTorch 的数据加载器使用。
 class CINE2DT(torch.utils.data.Dataset):
