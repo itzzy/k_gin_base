@@ -72,65 +72,65 @@ def load_mat(fn_im_path):
 
 ######原kspace和mask做欠采样
 # 加载 k-space 数据和线圈灵敏度图
-data = np.load('/nfs/zzy/data/k_gin_data/k_cine_multicoil_test.npy')
-csm = np.load('/nfs/zzy/data/k_gin_data/csm_cine_multicoil_test.npy')
-print("data-1:", data.shape)  # data: (800, coil=20, 18, 192, 192) (t,h,w)=(18, 192, 192) data: (118, 20, 18, 192, 192)
+# data = np.load('/nfs/zzy/data/k_gin_data/k_cine_multicoil_test.npy')
+# csm = np.load('/nfs/zzy/data/k_gin_data/csm_cine_multicoil_test.npy')
+# print("data-1:", data.shape)  # data: (800, coil=20, 18, 192, 192) (t,h,w)=(18, 192, 192) data: (118, 20, 18, 192, 192)
 
-# 只取第一个样本
-data = data[0, :, :, :, :]  # (coil=20, 18, 192, 192)
-print("data-2:", data.shape)
-csm = csm[0, :, :, :, :]    # (coil=20, 18, 192, 192)
+# # 只取第一个样本
+# data = data[0, :, :, :, :]  # (coil=20, 18, 192, 192)
+# print("data-2:", data.shape)
+# csm = csm[0, :, :, :, :]    # (coil=20, 18, 192, 192)
 
-# 加载欠采样掩码
-C = load_mat('/nfs/zzy/code/k_gin_base/masks/VISTA/e_192x18_acs4_R4.mat')
-mask = C['mask'][:]  # mask-type-1 (192, 18)
-print('mask-type-1', mask.shape)  # mask-type mask-type-1 (192, 18)
-mask = np.transpose(mask, [1, 0])  # 转置为 (18, 192)
-print('mask-type-2', mask.shape)  # mask-type (18, 192)
-
-
-
-# 扩展掩码维度以匹配 k-space 数据
-mask = np.expand_dims(mask, axis=1)  # mask (18, 1, 192)
-print('mask', mask.shape)  # mask: mask (18, 1, 192)
-
-# 对 k-space 数据进行欠采样
-data = data * mask  # (20, 192, 18, 192)
-print("data-3:", data.shape) #data-3: (20, 18, 192, 192)
+# # 加载欠采样掩码
+# C = load_mat('/nfs/zzy/code/k_gin_base/masks/VISTA/e_192x18_acs4_R4.mat')
+# mask = C['mask'][:]  # mask-type-1 (192, 18)
+# print('mask-type-1', mask.shape)  # mask-type mask-type-1 (192, 18)
+# mask = np.transpose(mask, [1, 0])  # 转置为 (18, 192)
+# print('mask-type-2', mask.shape)  # mask-type (18, 192)
 
 
-# 对欠采样的 k-space 数据进行逆傅里叶变换，并与 CSM 结合生成图像
-img = np.sum(IFFT2c(data) * np.conj(csm), axis=0)  # (18, 192, 192)
-print("img:", img.shape)  # img: (18, 192, 192)
 
-# 归一化并调整亮度
-img_max = np.max(np.abs(img))
-img_norm = np.abs(img) / img_max
-brightness_factor = 3
-img_brightened = np.clip(img_norm * brightness_factor, 0, 1)
+# # 扩展掩码维度以匹配 k-space 数据
+# mask = np.expand_dims(mask, axis=1)  # mask (18, 1, 192)
+# print('mask', mask.shape)  # mask: mask (18, 1, 192)
 
-# 创建 testzerofilling 目录
-output_dir = 'testzerofilling'
-if not os.path.exists(output_dir):
-    os.makedirs(output_dir)
-# 保存前五张图片
-for i in range(5):
-    break
-    plt.imshow(img_brightened[i], cmap='gray')
-    plt.title(f'Frame {i}')
-    plt.axis('off')
-    plt.savefig(os.path.join(output_dir, f'frame_{i}.png'))  # 保存为 PNG 文件
-    plt.close()  # 关闭当前图像，避免重叠
+# # 对 k-space 数据进行欠采样
+# data = data * mask  # (20, 192, 18, 192)
+# print("data-3:", data.shape) #data-3: (20, 18, 192, 192)
 
-# 生成 GIF 动画
-def animate(frame):
-    plt.imshow(img_brightened[frame], cmap='gray')
-    plt.title(f'Frame {frame}')
-    plt.axis('off')
 
-anim = FuncAnimation(plt.figure(), animate, frames=len(img_brightened), interval=500)
-anim.save(os.path.join(output_dir, 'testzerofilling.gif'), writer='imagemagick')  # 保存 GIF 文件
-print(f"前五张图片和 GIF 已保存到 {output_dir} 目录下。")
+# # 对欠采样的 k-space 数据进行逆傅里叶变换，并与 CSM 结合生成图像
+# img = np.sum(IFFT2c(data) * np.conj(csm), axis=0)  # (18, 192, 192)
+# print("img:", img.shape)  # img: (18, 192, 192)
+
+# # 归一化并调整亮度
+# img_max = np.max(np.abs(img))
+# img_norm = np.abs(img) / img_max
+# brightness_factor = 3
+# img_brightened = np.clip(img_norm * brightness_factor, 0, 1)
+
+# # 创建 testzerofilling 目录
+# output_dir = 'testzerofilling'
+# if not os.path.exists(output_dir):
+#     os.makedirs(output_dir)
+# # 保存前五张图片
+# for i in range(5):
+#     break
+#     plt.imshow(img_brightened[i], cmap='gray')
+#     plt.title(f'Frame {i}')
+#     plt.axis('off')
+#     plt.savefig(os.path.join(output_dir, f'frame_{i}.png'))  # 保存为 PNG 文件
+#     plt.close()  # 关闭当前图像，避免重叠
+
+# # 生成 GIF 动画
+# def animate(frame):
+#     plt.imshow(img_brightened[frame], cmap='gray')
+#     plt.title(f'Frame {frame}')
+#     plt.axis('off')
+
+# anim = FuncAnimation(plt.figure(), animate, frames=len(img_brightened), interval=500)
+# anim.save(os.path.join(output_dir, 'testzerofilling.gif'), writer='imagemagick')  # 保存 GIF 文件
+# print(f"前五张图片和 GIF 已保存到 {output_dir} 目录下。")
 
 # mask_bak = mask
 # mask_bak = np.expand_dims(mask_bak, axis=0)  # 添加 batch 维度
@@ -519,38 +519,45 @@ anim.save('output_kgin_1122_80.gif', writer='imagemagick')
     # anim.save(outpath, writer='imagemagick')
     
 # data = np.load('/nfs/zzy/code/k_gin_base/output/r4/out_1220_r4.npy')
-#     #csm = np.load('/data0/chentao/data/LplusSNet/data/20coil/csm_cine_multicoil_test.npy')
-# print("data:", data.shape) #data: (800, coil=20, 18, 192, 192) (t,h,w)=(18, 192, 192)
+# /nfs/zzy/code/k_gin_base/out_kgin_vista_r8_0216_100.npy
+# data = np.load('/nfs/zzy/code/k_gin_base/out_kgin_vista_r8_0216_100.npy')
+# /nfs/zzy/code/k_gin_base/out_kgin_vista_r8_0216_300.npy
+data = np.load('/nfs/zzy/code/k_gin_base/out_kgin_vista_r8_0216_300.npy')
+    #csm = np.load('/data0/chentao/data/LplusSNet/data/20coil/csm_cine_multicoil_test.npy')
+print("data:", data.shape) #data: (800, coil=20, 18, 192, 192) (t,h,w)=(18, 192, 192)
 # data = data[100:101,:,:,:]
-#     #csm = csm[100,:,:,:,:] 
-#     #img = np.sum(IFFT2c(data) * np.conj(csm), axis=0) #
+data = data[0:1,:,:,:]
+    #csm = csm[100,:,:,:,:] 
+    #img = np.sum(IFFT2c(data) * np.conj(csm), axis=0) #
 
-# img = IFFT2c(data)
-# img = img[0]
-# print("img:", img.shape)
+img = IFFT2c(data)
+img = img[0]
+print("img-shape:", img.shape)
 
-# img_max = np.max(np.abs(img))
-# img_norm = np.abs(img) / img_max
-# brightness_factor = 3
-# img_brightened = np.clip(img_norm * brightness_factor, 0, 1)
+img_max = np.max(np.abs(img))
+img_norm = np.abs(img) / img_max
+brightness_factor = 3
+img_brightened = np.clip(img_norm * brightness_factor, 0, 1)
 
-# def animate(frame):
-#     plt.imshow(img_brightened[frame], cmap='gray')  
-#     plt.title('Frame {}'.format(frame))
-#     plt.axis('off')
+def animate(frame):
+    plt.imshow(img_brightened[frame], cmap='gray')  
+    plt.title('Frame {}'.format(frame))
+    plt.axis('off')
 
-# anim = FuncAnimation(plt.figure(), animate, frames=len(img_brightened), interval=500)
-#     # anim.save('output_kv01.gif', writer='imagemagick')
-#     # /data0/zhiyong/code/github/k-gin/out_1122.npy
-#     # anim.save('output_kv_kgin_1122.gif', writer='imagemagick')
+anim = FuncAnimation(plt.figure(), animate, frames=len(img_brightened), interval=500)
+    # anim.save('output_kv01.gif', writer='imagemagick')
+    # /data0/zhiyong/code/github/k-gin/out_1122.npy
+    # anim.save('output_kv_kgin_1122.gif', writer='imagemagick')
 
-#     # /data0/zhiyong/code/github/itzzy_git/k-gin_kv/out_1130.npy
-#     # anim.save('output_kv_kgin_1130_2_1.gif', writer='imagemagick')
-#     # /nfs/zzy/code/k_gin_kv/output/r4/out_1220_r4.npy
-#     # anim.save('output_kv_kgin_1220_r4.gif', writer='imagemagick')
-#     # /nfs/zzy/code/k_gin_base/output/r4/out_1220_r4.npy
-# anim.save('output_kgin_base_1220_r4.gif', writer='imagemagick')
-
+    # /data0/zhiyong/code/github/itzzy_git/k-gin_kv/out_1130.npy
+    # anim.save('output_kv_kgin_1130_2_1.gif', writer='imagemagick')
+    # /nfs/zzy/code/k_gin_kv/output/r4/out_1220_r4.npy
+    # anim.save('output_kv_kgin_1220_r4.gif', writer='imagemagick')
+    # /nfs/zzy/code/k_gin_base/output/r4/out_1220_r4.npy
+# 100个epoch有伪影 
+anim.save('out_kgin_vista_r8_0216_100.gif', writer='imagemagick')
+# /nfs/zzy/code/k_gin_base/out_kgin_vista_r8_0216_300.npy  实际是vista mask
+anim.save('out_kgin_vista_r8_0218.gif', writer='imagemagick')
 
 # if __name__ == "__main__":
 #     filepath = '/nfs/zzy/code/k_gin_base/output/r4/out_1220_r4.npy'

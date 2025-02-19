@@ -40,6 +40,7 @@ class KInterpolator(nn.Module):
         self.register_buffer('B', B)
 
         self.patch_embed = nn.Conv2d(self.img_size[2]*2, self.embed_dim, kernel_size=(1, 1))
+        # print('self.patch_embed',self.patch_embed.shape)
 
         self.blocks = nn.ModuleList([
             Block(self.embed_dim, num_heads, mlp_ratio, qkv_bias=True, norm_layer=norm_layer, act_layer=act_layer)
@@ -136,7 +137,7 @@ class KInterpolator(nn.Module):
             nn.init.constant_(m.weight, 1.0)
 
     def encoder(self, kspace, mask):
-        # print('encoder-kspace, mask', kspace.shape, mask.shape)
+        print('encoder-kspace, mask', kspace.shape, mask.shape)
         b, c, h, w = kspace.shape
         kspace = self.patch_embed(kspace)
 
@@ -256,15 +257,31 @@ class KInterpolator(nn.Module):
     def forward(self, img, mask):
         # size of input img and mask: [B, T, H, W]
         # k, m torch.Size([1, 18, 192, 192]) torch.Size([1, 18, 192])
-        # print('k, m', img.shape, mask.shape)
+        
+        # kspace, mask torch.Size([2, 18, 192, 192]) torch.Size([2, 18, 192, 192])
+        print('kspace, mask', img.shape, mask.shape)
         img_orig = torch.view_as_real(img)
-        # mask_orig = mask[..., None].expand_as(img_orig)
+        #vista mask使用下面的代码 mask维度[18,192,192]
+        # mask_orig = mask[..., None].expand_as(img_orig)  # 将掩码扩展到与图像相同的维度
+        # 随机mask使用下面的代码 mask维度[18,192]
         mask_orig = mask[..., None, None].expand_as(img_orig)  # 将掩码扩展到与图像相同的维度
+        # mask_orig: torch.Size([2, 18, 192, 192, 2])
+        print('mask_orig:',mask_orig.shape)
         img = torch.view_as_real(torch.einsum('bthw->btwh', img)).flatten(-2)
         img = torch.einsum('bhwt->bthw', img)
         b, h_2, t, w = img.shape
 
-        mask = mask.flatten(1, -1)
+        '''
+        flatten(1, -1)都会从第1维开始到最后一个维度结束，将它们展平
+        对于mask1，维度是[2, 18, 192]。展平第1维到最后一维，即展平18和192，结果将是[2, 18*192]。
+        对于mask2，维度是[2, 18, 192, 192]。展平第1维到最后一维，即展平18、192和192，结果将是[2, 18*192*192]。
+        '''
+        mask = mask.flatten(1, -1) #随机mask使用此代码
+        # 
+        # mask = mask.flatten(1,2)
+        
+        # mask-flatten-shape: torch.Size([2, 663552])
+        print('mask-flatten-shape:',mask.shape)
 
         latent, ids_restore = self.encoder(img, mask)
         # forward-latent: torch.Size([1, 631, 512])
