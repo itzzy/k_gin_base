@@ -10,9 +10,9 @@ general:
   # acc_rate: 4
   only_infer: &only_infer False
   tensorboard_log_dir: 'runs/test_dcrnn_test_tensorboard_log'
-  model_name_run: 'runs/test_dcrnn_test_run_0118_1'
-  model_name_run_test: 'runs/test_dcrnn_test_run_test_0118_1'
-  model_save_dir: 'saved_data/model_test_dcrnn_test_0118_1'
+  model_name_run: 'runs/test_dcrnn_test_run_0226_1'
+  model_name_run_test: 'runs/test_dcrnn_test_run_test_0226_1'
+  model_save_dir: 'saved_data/model_test_dcrnn_test_0226_1'
 
 
 
@@ -50,10 +50,10 @@ data:
   only_infer: *only_infer
 
 training:
-  num_epochs: &epochs 100
-  # num_epochs: &epochs 300
-  warmup_epoch: 10
-  # warmup_epoch: 30
+  num_epochs: &epochs 1
+  # num_epochs: &epochs 500
+  warmup_epoch: 0
+  # warmup_epoch: 50
   batch_size: 4
   num_workers: 2
   # num_workers: 2

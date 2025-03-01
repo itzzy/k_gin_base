@@ -1,4 +1,5 @@
 import numpy as np
+from numpy.fft import fft2, ifft2, ifftshift, fftshift
 from . import mymath
 from numpy.lib.stride_tricks import as_strided
 from utils.fastmriBaseUtils import IFFT2c,FFT2c
@@ -85,8 +86,52 @@ def cartesian_mask(shape, acc, sample_n=10, centred=False):
     return mask
 
 
-def shear_grid_mask(shape, acceleration_rate, sample_low_freq=True,
-                    centred=False, sample_n=10):
+# def shear_grid_mask(shape, acceleration_rate, sample_low_freq=True,
+#                     centred=False, sample_n=10):
+#     '''
+#     Creates undersampling mask which samples in sheer grid
+
+#     Parameters
+#     ----------
+
+#     shape: (nt, nx, ny)
+
+#     acceleration_rate: int
+
+#     Returns
+#     -------
+
+#     array
+
+#     '''
+#     Nt, Nx, Ny = shape
+#     start = np.random.randint(0, acceleration_rate)
+#     mask = np.zeros((Nt, Nx))
+#     for t in xrange(Nt):
+#         mask[t, (start+t)%acceleration_rate::acceleration_rate] = 1
+
+#     xc = Nx / 2
+#     xl = sample_n / 2
+#     if sample_low_freq and centred:
+#         xh = xl
+#         if sample_n % 2 == 0:
+#             xh += 1
+#         mask[:, xc - xl:xc + xh+1] = 1
+
+#     elif sample_low_freq:
+#         xh = xl
+#         if sample_n % 2 == 1:
+#             xh -= 1
+
+#         if xl > 0:
+#             mask[:, :xl] = 1
+#         if xh > 0:
+#             mask[:, -xh:] = 1
+
+#     mask_rep = np.repeat(mask[..., np.newaxis], Ny, axis=-1)
+#     return mask_rep
+def shear_grid_mask(shape, acceleration_rate, sample_low_freq=False,
+                    centred=False, sample_n=4, test=False):
     '''
     Creates undersampling mask which samples in sheer grid
 
@@ -104,13 +149,16 @@ def shear_grid_mask(shape, acceleration_rate, sample_low_freq=True,
 
     '''
     Nt, Nx, Ny = shape
-    start = np.random.randint(0, acceleration_rate)
+    if test:
+        start = 0
+    else:
+        start = np.random.randint(0, acceleration_rate)
     mask = np.zeros((Nt, Nx))
-    for t in xrange(Nt):
+    for t in range(Nt):
         mask[t, (start+t)%acceleration_rate::acceleration_rate] = 1
 
-    xc = Nx / 2
-    xl = sample_n / 2
+    xc = Nx // 2
+    xl = sample_n // 2
     if sample_low_freq and centred:
         xh = xl
         if sample_n % 2 == 0:
@@ -130,43 +178,42 @@ def shear_grid_mask(shape, acceleration_rate, sample_low_freq=True,
     mask_rep = np.repeat(mask[..., np.newaxis], Ny, axis=-1)
     return mask_rep
 
+# def perturbed_shear_grid_mask(shape, acceleration_rate, sample_low_freq=True,
+#                               centred=False,
+#                               sample_n=10):
+#     Nt, Nx, Ny = shape
+#     start = np.random.randint(0, acceleration_rate)
+#     mask = np.zeros((Nt, Nx))
+#     for t in xrange(Nt):
+#         mask[t, (start+t)%acceleration_rate::acceleration_rate] = 1
 
-def perturbed_shear_grid_mask(shape, acceleration_rate, sample_low_freq=True,
-                              centred=False,
-                              sample_n=10):
-    Nt, Nx, Ny = shape
-    start = np.random.randint(0, acceleration_rate)
-    mask = np.zeros((Nt, Nx))
-    for t in xrange(Nt):
-        mask[t, (start+t)%acceleration_rate::acceleration_rate] = 1
+#     # brute force
+#     rand_code = np.random.randint(0, 3, size=Nt*Nx)
+#     shift = np.array([-1, 0, 1])[rand_code]
+#     new_mask = np.zeros_like(mask)
+#     for t in xrange(Nt):
+#         for x in xrange(Nx):
+#             if mask[t, x]:
+#                 new_mask[t, (x + shift[t*x])%Nx] = 1
 
-    # brute force
-    rand_code = np.random.randint(0, 3, size=Nt*Nx)
-    shift = np.array([-1, 0, 1])[rand_code]
-    new_mask = np.zeros_like(mask)
-    for t in xrange(Nt):
-        for x in xrange(Nx):
-            if mask[t, x]:
-                new_mask[t, (x + shift[t*x])%Nx] = 1
+#     xc = Nx / 2
+#     xl = sample_n / 2
+#     if sample_low_freq and centred:
+#         xh = xl
+#         if sample_n % 2 == 0:
+#             xh += 1
+#         new_mask[:, xc - xl:xc + xh+1] = 1
 
-    xc = Nx / 2
-    xl = sample_n / 2
-    if sample_low_freq and centred:
-        xh = xl
-        if sample_n % 2 == 0:
-            xh += 1
-        new_mask[:, xc - xl:xc + xh+1] = 1
+#     elif sample_low_freq:
+#         xh = xl
+#         if sample_n % 2 == 1:
+#             xh -= 1
 
-    elif sample_low_freq:
-        xh = xl
-        if sample_n % 2 == 1:
-            xh -= 1
+#         new_mask[:, :xl] = 1
+#         new_mask[:, -xh:] = 1
+#     mask_rep = np.repeat(new_mask[..., np.newaxis], Ny, axis=-1)
 
-        new_mask[:, :xl] = 1
-        new_mask[:, -xh:] = 1
-    mask_rep = np.repeat(new_mask[..., np.newaxis], Ny, axis=-1)
-
-    return mask_rep
+#     return mask_rep
 
 
 # def undersample(x, mask, centred=False, norm='ortho', noise=0):
@@ -220,6 +267,58 @@ def perturbed_shear_grid_mask(shape, acceleration_rate, sample_low_freq=True,
 #         # 函数最终会返回欠采样后的图像数据（在图像域）和欠采样的数据（在 k 空间）
 #         return x_u, x_fu
 
+# def undersample(x, mask, centred=False, norm='ortho', noise=0):
+#     '''
+#     Undersample x. FFT2 will be applied to the last 2 axis
+#     Parameters
+#     ----------
+#     x: array_like
+#         data
+#     mask: array_like
+#         undersampling mask in fourier domain
+
+#     norm: 'ortho' or None
+#         if 'ortho', performs unitary transform, otherwise normal dft
+
+#     noise_power: float
+#         simulates acquisition noise, complex AWG noise.
+#         must be percentage of the peak signal
+
+#     Returns
+#     -------
+#     xu: array_like
+#         undersampled image in image domain. Note that it is complex valued
+
+#     x_fu: array_like
+#         undersampled data in k-space
+
+#     '''
+#     # print('undersample-x-shape:',x.shape) #undersample-x-shape: (4, 18, 192, 192)
+#     # print('undersample-x-dtype:',x.dtype) #undersample-x-dtype: complex64
+#     assert x.shape == mask.shape
+#     # zero mean complex Gaussian noise
+#     noise_power = noise
+#     nz = np.sqrt(.5)*(np.random.normal(0, 1, x.shape) + 1j * np.random.normal(0, 1, x.shape))
+#     nz = nz * np.sqrt(noise_power)
+
+#     if norm == 'ortho':
+#         # multiplicative factor
+#         nz = nz * np.sqrt(np.prod(mask.shape[-2:]))
+#     else:
+#         nz = nz * np.prod(mask.shape[-2:])
+
+#     if centred:
+#         x_f = mymath.fft2c(x, norm=norm)
+#         x_fu = mask * (x_f + nz)
+#         x_u = mymath.ifft2c(x_fu, norm=norm)
+#         return x_u, x_fu
+#     else:
+#         x_f = FFT2c(x)
+#         x_fu = mask * (x_f + nz)
+#         x_u = IFFT2c(x_fu)
+#         # 函数最终会返回欠采样后的图像数据（在图像域）和欠采样的数据（在 k 空间）
+#         return x_u, x_fu
+
 def undersample(x, mask, centred=False, norm='ortho', noise=0):
     '''
     Undersample x. FFT2 will be applied to the last 2 axis
@@ -246,8 +345,6 @@ def undersample(x, mask, centred=False, norm='ortho', noise=0):
         undersampled data in k-space
 
     '''
-    # print('undersample-x-shape:',x.shape) #undersample-x-shape: (4, 18, 192, 192)
-    # print('undersample-x-dtype:',x.dtype) #undersample-x-dtype: complex64
     assert x.shape == mask.shape
     # zero mean complex Gaussian noise
     noise_power = noise
@@ -261,15 +358,15 @@ def undersample(x, mask, centred=False, norm='ortho', noise=0):
         nz = nz * np.prod(mask.shape[-2:])
 
     if centred:
-        x_f = mymath.fft2c(x, norm=norm)
+        axes = (-2, -1)
+        x_f = fftshift(fft2(ifftshift(x, axes=axes), norm=norm), axes=axes)
         x_fu = mask * (x_f + nz)
-        x_u = mymath.ifft2c(x_fu, norm=norm)
+        x_u = fftshift(ifft2(ifftshift(x_fu, axes=axes), norm=norm), axes=axes)
         return x_u, x_fu
     else:
-        x_f = FFT2c(x)
+        x_f = fft2(x, norm=norm)
         x_fu = mask * (x_f + nz)
-        x_u = IFFT2c(x_fu)
-        # 函数最终会返回欠采样后的图像数据（在图像域）和欠采样的数据（在 k 空间）
+        x_u = ifft2(x_fu, norm=norm)
         return x_u, x_fu
 
 
