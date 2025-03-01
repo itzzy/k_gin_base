@@ -36,7 +36,8 @@ def kspace_to_image(k_space):
     # image = np.fft.ifft2(k_space, axes=(-2, -1))
     # image = np.fft.ifft2(k_space, axes=(-3, -2),norm='ortho')
     # # 取幅值（可选，也可以取实部或虚部）
-    k_undersample_complex = torch.view_as_complex(k_space.contiguous()) #torch.Size([1, 30, 256, 256])
+    # k_undersample_complex = torch.view_as_complex(k_space.contiguous()) #torch.Size([1, 30, 256, 256])
+    k_undersample_complex = k_space #torch.Size([1, 30, 256, 256])
     # print('kspace_to_image-k_undersample_complex-shape:',k_undersample_complex.shape) # torch.Size([4, 18, 192, 192])
     # print('kspace_to_image-k_undersample_complex-dtype:',k_undersample_complex.dtype) # torch.complex64
     kspace_img = ifft2c(k_undersample_complex)
@@ -232,16 +233,7 @@ class DataConsistencyInKspace(nn.Module):
         # k shape: (n, nt, nx, ny, 2)
         # 检查 k0 所在的设备
         # device = k0.device
-        prefix='last_epoch_'
-         # 保存输入的x（x是tensor）
-        x_recon_image = x.detach().cpu().numpy()
-        if save_last and model_save_dir:
-            # 保存输入的x（x是tensor）
-            # x_recon_image = x.detach().cpu().numpy()
-            # 将 k-space 数据转换到图像域
-            # x_recon_image = kspace_to_image(x_np)
-            # 保存 k, k0, mask
-            save_data(x_recon_image, model_save_dir, prefix, 'x_recon_image')
+       
         
         # print('perform-self.normalized:',self.normalized) #perform-self.normalized: True
         # x_recon_f = mymath.fft2(x_recon_image, axes=(-3, -2),norm='ortho' if self.normalized else 'backward')
@@ -318,20 +310,35 @@ class DataConsistencyInKspace(nn.Module):
 
 
         # 将实部和虚部合并为复数张量
-        x_complex = torch.view_as_complex(x.contiguous()) #torch.Size([1, 30, 256, 256])
+        # x_complex = torch.view_as_complex(x.contiguous()) #torch.Size([1, 30, 256, 256])
         # print('perform-x_complex-shape:',x_complex.shape) #torch.Size([4, 18, 192, 192])
         # print('perform-x_complex-dtype:',x_complex.dtype) #torch.complex64
-        x_kspace = fft2c(x_complex)
-        k = torch.view_as_real(x_kspace)  # [batch_size, t,nx, ny, 2]
+        x_complex = torch.view_as_complex(x.contiguous())
+        prefix='last_epoch_'
+         # 保存输入的x（x是tensor）
+        # x_recon_image = x.detach().cpu().numpy()
+        x_recon_image = x_complex.detach().cpu().numpy()
+        if save_last and model_save_dir:
+            # 保存输入的x（x是tensor）
+            # x_recon_image = x.detach().cpu().numpy()
+            # 将 k-space 数据转换到图像域
+            # x_recon_image = kspace_to_image(x_np)
+            # 保存 k, k0, mask
+            save_data(x_recon_image, model_save_dir, prefix, 'x_recon_image')
+        k0_complex = torch.view_as_complex(k0.contiguous())
+        mask_complex = torch.view_as_complex(mask.contiguous())
+        k_x_kspace = fft2c(x_complex)
+        # k = torch.view_as_real(x_kspace)  # [batch_size, t,nx, ny, 2]
         # print('perform-k-shape:',k.shape) #torch.Size([4, 18, 192, 192, 2])
         # print('perform-k-dtype:',k.dtype) #torch.float32
         # k = torch.fft.fft2(x, dim=(-3, -2), norm='ortho' if self.normalized else 'backward')
         # k = torch.fft(x, 2, normalized=self.normalized)
-        out = data_consistency(k, k0, mask, self.noise_lvl, save_dir=model_save_dir, prefix=prefix, save_last=save_last)
-        # print('perform-out-shape:',out.shape) #torch.Size([4, 18, 192, 192, 2])
-        # print('perform-out-dtype:',out.dtype) #torch.float32
-        out_complex = torch.view_as_complex(out.contiguous())
-        out_complex_img = ifft2c(out_complex)
+        # out = data_consistency(k, k0, mask, self.noise_lvl, save_dir=model_save_dir, prefix=prefix, save_last=save_last)
+        out = data_consistency(k_x_kspace, k0_complex, mask_complex, self.noise_lvl, save_dir=model_save_dir, prefix=prefix, save_last=save_last)
+        print('perform-out-shape:',out.shape) #perform-out-shape: torch.Size([4, 18, 192, 192])
+        print('perform-out-dtype:',out.dtype) #perform-out-dtype: torch.complex64
+        # out_complex = torch.view_as_complex(out.contiguous())
+        out_complex_img = ifft2c(out)
         x_res = torch.view_as_real(out_complex_img)
         # print('perform-x_res-shape:',x_res.shape) #torch.Size([4, 18, 192, 192, 2])
         # print('perform-x_res-dtype:',x_res.dtype) #torch.float32

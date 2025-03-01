@@ -45,7 +45,7 @@ os.environ['PYTORCH_CUDA_ALLOC_CONF'] = 'expandable_segments:True'
 # os.environ["CUDA_VISIBLE_DEVICES"] = "3" #,0,1,2,4,5,6,7
 # os.environ['CUDA_VISIBLE_DEVICES'] = '1'  # 指定使用 GPU 1 和 GPU 4
 # os.environ['CUDA_VISIBLE_DEVICES'] = '6'  # 指定使用 GPU 1 和 GPU 4
-os.environ['CUDA_VISIBLE_DEVICES'] = '5'  # 指定使用 GPU 1 和 GPU 4
+os.environ['CUDA_VISIBLE_DEVICES'] = '0'  # 指定使用 GPU 1 和 GPU 4
 
 # 设置环境变量 CUDA_VISIBLE_DEVICES  0-5(nvidia--os) 2-6 3-7
 # os.environ['CUDA_VISIBLE_DEVICES'] = '0,1'  # 指定使用 GPU 1 和 GPU 4
@@ -91,15 +91,15 @@ class TrainerAbstract:
         
 
         # data
-        # train_ds = CINE2DT(config=config.data, mode='train')
+        train_ds = CINE2DT(config=config.data, mode='train')
         # train_ds = CINE2DT(config=config.data, mode='val')
         test_ds = CINE2DT(config=config.data, mode='val')
         # 测试数据分位训练集:测试集 = 8:2 计算训练集和测试集的大小
-        total_size = len(test_ds)
-        train_size = int(0.8 * total_size)  # 80% 用于训练
-        test_size = total_size - train_size  # 20% 用于测试
-        # 使用 random_split 划分数据集
-        train_ds, test_ds = random_split(test_ds, [train_size, test_size])
+        # total_size = len(test_ds)
+        # train_size = int(0.8 * total_size)  # 80% 用于训练
+        # test_size = total_size - train_size  # 20% 用于测试
+        # # 使用 random_split 划分数据集
+        # train_ds, test_ds = random_split(test_ds, [train_size, test_size])
         self.train_loader = DataLoader(dataset=train_ds, num_workers=config.training.num_workers, drop_last=False,
                                        pin_memory=True, batch_size=config.training.batch_size, shuffle=True)
         self.test_loader = DataLoader(dataset=test_ds, num_workers=2, drop_last=False, batch_size=1, shuffle=False)
@@ -391,14 +391,39 @@ class TrainerKInterpolator(TrainerAbstract):
         # 保存图像和模型
         i = 0
         for im_i, pred_i, und_i, mask_i in vis:
-            im = abs(np.concatenate([und_i[0], pred_i[0], im_i[0], im_i[0] - pred_i[0]], 1))
+        #     im = abs(np.concatenate([und_i[0], pred_i[0], im_i[0], im_i[0] - pred_i[0]], 1))
+        #     plt.imsave(join(save_dir_run_test, f'im_{i}_x.png'), im, cmap='gray')
+
+        #     im = abs(np.concatenate([und_i[..., 0], pred_i[..., 0],
+        #                             im_i[..., 0], im_i[..., 0] - pred_i[..., 0]], 0))
+        #     plt.imsave(join(save_dir_run_test, f'im_{i}_t.png'), im, cmap='gray')
+        #     plt.imsave(join(save_dir_run_test, f'mask_{i}.png'),
+        #     np.fft.fftshift(mask_i[..., 0]), cmap='gray')
+        #     i += 1
+            # 对每张图像进行归一化和亮度调整
+            und_i_brightened = normalize_and_adjust_brightness(und_i[0])
+            pred_i_brightened = normalize_and_adjust_brightness(pred_i[0])
+            im_i_brightened = normalize_and_adjust_brightness(im_i[0])
+            diff_brightened = normalize_and_adjust_brightness(im_i[0] - pred_i[0])
+
+            # 水平拼接图像
+            im = np.concatenate([und_i_brightened, pred_i_brightened, im_i_brightened, diff_brightened], axis=1)
             plt.imsave(join(save_dir_run_test, f'im_{i}_x.png'), im, cmap='gray')
 
-            im = abs(np.concatenate([und_i[..., 0], pred_i[..., 0],
-                                    im_i[..., 0], im_i[..., 0] - pred_i[..., 0]], 0))
-            plt.imsave(join(save_dir_run_test, f'im_{i}_t.png'), im, cmap='gray')
-            plt.imsave(join(save_dir_run_test, f'mask_{i}.png'),
-            np.fft.fftshift(mask_i[..., 0]), cmap='gray')
+            # 对时间维度图像进行归一化和亮度调整
+            und_i_t_brightened = normalize_and_adjust_brightness(und_i[..., 0])
+            pred_i_t_brightened = normalize_and_adjust_brightness(pred_i[..., 0])
+            im_i_t_brightened = normalize_and_adjust_brightness(im_i[..., 0])
+            diff_t_brightened = normalize_and_adjust_brightness(im_i[..., 0] - pred_i[..., 0])
+
+            # 垂直拼接图像
+            im_t = np.concatenate([und_i_t_brightened, pred_i_t_brightened, im_i_t_brightened, diff_t_brightened], axis=0)
+            plt.imsave(join(save_dir_run_test, f'im_{i}_t.png'), im_t, cmap='gray')
+
+            # 保存掩码图像
+            mask_shifted = np.fft.fftshift(mask_i[..., 0])
+            mask_brightened = normalize_and_adjust_brightness(mask_shifted)
+            plt.imsave(join(save_dir_run_test, f'mask_{i}.png'), mask_brightened, cmap='gray')
             i += 1
 
         # 保存网络权重
@@ -408,6 +433,13 @@ class TrainerKInterpolator(TrainerAbstract):
         # 关闭TensorBoard
         self.writer.close()
 
+# 对图像进行归一化并调整亮度
+def normalize_and_adjust_brightness(image, brightness_factor=3):
+    img_max = np.max(np.abs(image))
+    img_norm = np.abs(image) / img_max
+    img_brightened = np.clip(img_norm * brightness_factor, 0, 1)
+    return img_brightened
+    
 def save_last_batch_data(im_undersample,k_undersample,mask,im_groudtruth,save_dir):
      # train_one_epoch-im_undersample torch.Size([2, 2, 192, 192, 18])
     # train_one_epoch-k_undersample torch.Size([2, 2, 192, 192, 18])
