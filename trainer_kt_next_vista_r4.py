@@ -43,7 +43,7 @@ os.environ['PYTORCH_CUDA_ALLOC_CONF'] = 'max_split_size_mb:256'
 # os.environ["CUDA_VISIBLE_DEVICES"] = "3" #,0,1,2,4,5,6,7
 # os.environ['CUDA_VISIBLE_DEVICES'] = '1'  # 指定使用 GPU 1 和 GPU 4
 # os.environ['CUDA_VISIBLE_DEVICES'] = '6'  # 指定使用 GPU 1 和 GPU 4
-os.environ['CUDA_VISIBLE_DEVICES'] = '6'  # 指定使用 GPU 1 和 GPU 4
+os.environ['CUDA_VISIBLE_DEVICES'] = '5'  # 指定使用 GPU 1 和 GPU 4
 
 # 设置环境变量 CUDA_VISIBLE_DEVICES  0-1(nvidia--os) 3-6 4-7  5--0  6--2 7--3
 # os.environ['CUDA_VISIBLE_DEVICES'] = '0,1'  # 指定使用 GPU 1 和 GPU 4
@@ -56,14 +56,14 @@ cuda = True if torch.cuda.is_available() else False
 Tensor = torch.cuda.FloatTensor if cuda else torch.Tensor
 criterion = torch.nn.MSELoss()
 
-# nohup python train_kt_next_vista_r4_test.py --config config_kt_next_vista_test.yaml > log_0302_vista_1.txt 2>&1 &
+# nohup python train_kt_next_vista_r4.py --config config_kt_next_vista_r4.yaml > log_0302_vista_r4.txt 2>&1 &
 class TrainerAbstract:
     def __init__(self, config):
         print("TrainerAbstract initialized.")
         super().__init__()
         self.config = config.general
         self.debug = config.general.debug
-        if self.debug: config.general.exp_name = 'kt_next_vista_test'
+        if self.debug: config.general.exp_name = 'kt_next_vista_r4'
         self.experiment_dir = os.path.join(config.general.exp_save_root, config.general.exp_name)
         pathlib.Path(self.experiment_dir).mkdir(parents=True, exist_ok=True)
         
@@ -92,15 +92,15 @@ class TrainerAbstract:
         
 
         # data
-        # train_ds = CINE2DT(config=config.data, mode='train')
+        train_ds = CINE2DT(config=config.data, mode='train')
         # train_ds = CINE2DT(config=config.data, mode='val')
         test_ds = CINE2DT(config=config.data, mode='val')
         # 测试数据分位训练集:测试集 = 8:2 计算训练集和测试集的大小
-        total_size = len(test_ds)
-        train_size = int(0.8 * total_size)  # 80% 用于训练
-        test_size = total_size - train_size  # 20% 用于测试
-        # 使用 random_split 划分数据集
-        train_ds, test_ds = random_split(test_ds, [train_size, test_size])
+        # total_size = len(test_ds)
+        # train_size = int(0.8 * total_size)  # 80% 用于训练
+        # test_size = total_size - train_size  # 20% 用于测试
+        # # 使用 random_split 划分数据集
+        # train_ds, test_ds = random_split(test_ds, [train_size, test_size])
         self.train_loader = DataLoader(dataset=train_ds, num_workers=config.training.num_workers, drop_last=False,
                                        pin_memory=True, batch_size=config.training.batch_size, shuffle=True)
         self.test_loader = DataLoader(dataset=test_ds, num_workers=2, drop_last=False, batch_size=1, shuffle=False)
@@ -246,12 +246,12 @@ class TrainerKInterpolator(TrainerAbstract):
             # train_one_epoch-k_undersample torch.Size([2, 2, 192, 192, 18])
             # train_one_epoch-mask torch.Size([2, 2, 192, 192, 18])
             # train_one_epoch-im_groudtruth torch.Size([2, 2, 192, 192, 18])
-            print('train_one_epoch-im_undersample', im_undersample.shape) # torch.Size([2, 2, 192, 192, 18])
-            print('train_one_epoch-k_undersample', k_undersample.shape) # torch.Size([2, 2, 192, 192, 18])
+            # print('train_one_epoch-im_undersample', im_undersample.shape) # torch.Size([2, 2, 192, 192, 18])
+            # print('train_one_epoch-k_undersample', k_undersample.shape) # torch.Size([2, 2, 192, 192, 18])
             # train_one_epoch-mask torch.Size([4, 2, 192, 192, 18])
-            print('train_one_epoch-mask', mask.shape) # torch.Size([2, 2, 192, 192, 18])
-            print('train_one_epoch-im_groudtruth', im_groudtruth.shape) # torch.Size([2, 2, 192, 192, 18])
-            print('train_one_epoch-xf_gnd', xf_gnd.shape) # torch.Size([2, 2, 192, 192, 18])
+            # print('train_one_epoch-mask', mask.shape) # torch.Size([2, 2, 192, 192, 18])
+            # print('train_one_epoch-im_groudtruth', im_groudtruth.shape) # torch.Size([2, 2, 192, 192, 18])
+            # print('train_one_epoch-xf_gnd', xf_gnd.shape) # torch.Size([2, 2, 192, 192, 18])
             self.optimizer.zero_grad()
             adjust_lr(self.optimizer, i/len(self.train_loader) + epoch, self.scheduler_info)
 
@@ -268,9 +268,9 @@ class TrainerKInterpolator(TrainerAbstract):
                 # loss = criterion(im_recon, im_groudtruth)
                 # print('train_one_epoch-loss',loss.requires_grad)
                 xf_out_nc = xf_out['t%d' % (self.nc-1)]
-                print('train_one_epoch-xf_out_nc-1-shape:',xf_out_nc.shape) #torch.Size([2, 192, 192, 18, 2])
+                # print('train_one_epoch-xf_out_nc-1-shape:',xf_out_nc.shape) #torch.Size([2, 192, 192, 18, 2])
                 xf_out_nc = xf_out_nc.permute(0, 4, 1, 2, 3)
-                print('train_one_epoch-xf_out_nc-2-shape:',xf_out_nc.shape) #torch.Size([2, 2, 192, 192, 18])
+                # print('train_one_epoch-xf_out_nc-2-shape:',xf_out_nc.shape) #torch.Size([2, 2, 192, 192, 18])
                 # 检查模型输出
                 if torch.isnan(img['t3']).any():
                     print("NaN in img output!")
@@ -396,7 +396,7 @@ class TrainerKInterpolator(TrainerAbstract):
                 k_undersample = Variable(k_undersample.type(Tensor))
                 mask = Variable(mask.type(Tensor))
                 im_groudtruth = Variable(im_groudtruth.type(Tensor))
-                print('run_test-im_groudtruth-shape:',im_groudtruth.shape) #torch.Size([1, 192, 192, 18, 2])
+                # print('run_test-im_groudtruth-shape:',im_groudtruth.shape) #torch.Size([1, 192, 192, 18, 2])
                 xf_gnd = Variable(xf_gnd.type(Tensor))
                 # 检查是否是最后一个 epoch 的最后一个 batch
                 is_last_epoch = (epoch == self.num_epochs- 1)
@@ -415,8 +415,8 @@ class TrainerKInterpolator(TrainerAbstract):
                     xf_out_nc = xf_out['t%d' % (self.nc-1)]
                     # xf_out_nc = xf_out_nc.permute(0, 4, 1, 2, 3)
                     img_out_nc= img['t%d' % (self.nc-1)]
-                    print('run_test-xf_out_nc-shape:',xf_out_nc.shape) #torch.Size([1, 192, 192, 18, 2])
-                    print('run_test-img_out_nc-shape:',img_out_nc.shape) #torch.Size([1, 2, 192, 192, 18])
+                    # print('run_test-xf_out_nc-shape:',xf_out_nc.shape) #torch.Size([1, 192, 192, 18, 2])
+                    # print('run_test-img_out_nc-shape:',img_out_nc.shape) #torch.Size([1, 2, 192, 192, 18])
                     img_out_nc_permute = img_out_nc.permute(0,2,3,4,1)
                     
                 # img_test_loss = criterion(img['t%d' % (self.nc-1)], im_groudtruth)
@@ -858,8 +858,8 @@ def prep_input(im, mask, acc=4.0):
     # im_np = im.numpy() if isinstance(im, torch.Tensor) else im
     im_und, k_und = cs.undersample(im_np, mask_np, centred=False, norm='ortho')
     # im_und, k_und = cs.undersample(im_np, mask_np, centred=True, norm='ortho')
-    print('prep_input-im_und-shape:',im_und.shape) #(1, 18, 192, 192)
-    print('prep_input-k_und-shape:',k_und.shape) #(1, 18, 192, 192)
+    # print('prep_input-im_und-shape:',im_und.shape) #(1, 18, 192, 192)
+    # print('prep_input-k_und-shape:',k_und.shape) #(1, 18, 192, 192)
 
     # 转换为网络接受的张量格式
     im_gnd_l = torch.from_numpy(to_tensor_format(im)).float()
@@ -867,10 +867,10 @@ def prep_input(im, mask, acc=4.0):
     k_und_l = torch.from_numpy(to_tensor_format(k_und)).float()
     # mask_l = torch.from_numpy(to_tensor_format(mask.numpy(), mask=True)).float()
     mask_l = torch.from_numpy(to_tensor_format(mask_np, mask=True)).float()
-    print('im_gnd_l-shape:',im_gnd_l.shape) #torch.Size([4, 2, 192, 192, 18])
-    print('im_und_l-shape:',im_und_l.shape) #torch.Size([4, 2, 192, 192, 18])
-    print('k_und_l-shape:',k_und_l.shape) #torch.Size([4, 2, 192, 192, 18])
-    print('mask_l-shape:',mask_l.shape) #torch.Size([4, 2, 192, 192, 18])
+    # print('im_gnd_l-shape:',im_gnd_l.shape) #torch.Size([4, 2, 192, 192, 18])
+    # print('im_und_l-shape:',im_und_l.shape) #torch.Size([4, 2, 192, 192, 18])
+    # print('k_und_l-shape:',k_und_l.shape) #torch.Size([4, 2, 192, 192, 18])
+    # print('mask_l-shape:',mask_l.shape) #torch.Size([4, 2, 192, 192, 18])
     # print('xf_gnd_l-shape:',xf_gnd_l.shape) #torch.Size([4, 2, 192, 192, 18])
 
 
@@ -879,7 +879,9 @@ def prep_input(im, mask, acc=4.0):
     xf_gnd = fftshift(fft(ifftshift(im_np, axes=-1), norm='ortho'), axes=-1)
     xf_gnd = xf_gnd.transpose(0, 3, 1, 2)
     xf_gnd_l = torch.from_numpy(to_tensor_format(xf_gnd))
-    print('xf_gnd_l-shape:',xf_gnd_l.shape) #torch.Size([4, 2, 192, 192, 18])
+    # The code is printing the shape of a tensor variable `xf_gnd_l`. The output shows that `xf_gnd_l`
+    # has a shape of torch.Size([4, 2, 192, 192, 18]).
+    # print('xf_gnd_l-shape:',xf_gnd_l.shape) #torch.Size([4, 2, 192, 192, 18])
     
     return im_und_l, k_und_l, mask_l, im_gnd_l,xf_gnd_l
 
