@@ -40,7 +40,7 @@ class TrainerAbstract:
         super().__init__()
         self.config = config.general
         self.debug = config.general.debug
-        if self.debug: config.general.exp_name = 'test_k_gin'
+        if self.debug: config.general.exp_name = 'test_kgin_base_r6'
         self.experiment_dir = os.path.join(config.general.exp_save_root, config.general.exp_name)
         pathlib.Path(self.experiment_dir).mkdir(parents=True, exist_ok=True)
 
@@ -49,8 +49,8 @@ class TrainerAbstract:
         self.num_epochs = config.training.num_epochs if config.general.only_infer is False else 1
 
         # data
-        # train_ds = CINE2DT(config=config.data, mode='train')
-        train_ds = CINE2DT(config=config.data, mode='val')
+        train_ds = CINE2DT(config=config.data, mode='train')
+        # train_ds = CINE2DT(config=config.data, mode='val')
         test_ds = CINE2DT(config=config.data, mode='val')
         self.train_loader = DataLoader(dataset=train_ds, num_workers=config.training.num_workers, drop_last=False,
                                        pin_memory=True, batch_size=config.training.batch_size, shuffle=True)
@@ -257,7 +257,7 @@ class TrainerKInterpolator(TrainerAbstract):
             # np.save('out_kgin_base_0108.npy', out)
             # 尝试保存数组到文件，如果文件已存在则覆盖
             try:
-                np.save('out_kgin_base_r8_0118.npy', out)
+                np.save('out_kgin_base_r6_0303.npy', out)
             except OSError as e:
                 print(f"An error occurred: {e}")
             self.logger.update_best_eval_results(self.logger.get_metric_value('val/psnr'))

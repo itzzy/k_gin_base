@@ -114,12 +114,12 @@ class DataConsistencyInKspace(nn.Module):
         # k = torch.fft(x, 2, normalized=self.normalized)
         # out = data_consistency(k, k0, mask, self.noise_lvl)
         # x_res = torch.ifft(out, 2, normalized=self.normalized)
-        print('DataConsistencyInKspace-perform-x-shape:',x.shape) #torch.Size([4, 18, 192, 192, 2])
-        print('DataConsistencyInKspace-perform-x-dtype:',x.dtype) # torch.float32
-        print('DataConsistencyInKspace-perform-k0-shape:',k0.shape) #torch.Size([4, 18, 192, 192, 2])
-        print('DataConsistencyInKspace-perform-k0-dtype:',k0.dtype) # torch.float32
-        print('DataConsistencyInKspace-perform-mask-shape:',mask.shape) #torch.Size([4, 18, 192, 192, 2])
-        print('DataConsistencyInKspace-perform-mask-dtype:',mask.dtype) #torch.float32
+        # print('DataConsistencyInKspace-perform-x-shape:',x.shape) #torch.Size([4, 18, 192, 192, 2])
+        # print('DataConsistencyInKspace-perform-x-dtype:',x.dtype) # torch.float32
+        # print('DataConsistencyInKspace-perform-k0-shape:',k0.shape) #torch.Size([4, 18, 192, 192, 2])
+        # print('DataConsistencyInKspace-perform-k0-dtype:',k0.dtype) # torch.float32
+        # print('DataConsistencyInKspace-perform-mask-shape:',mask.shape) #torch.Size([4, 18, 192, 192, 2])
+        # print('DataConsistencyInKspace-perform-mask-dtype:',mask.dtype) #torch.float32
         # 将输入的实数数据转换为复数（假设x的最后一个维度是2，对应实部和虚部） 
         x_complex = torch.view_as_complex(x.contiguous())
 

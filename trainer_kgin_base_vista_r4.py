@@ -235,6 +235,7 @@ class TrainerKInterpolator(TrainerAbstract):
                 kspace = ref_kspace
 
                 k_recon_2ch, im_recon = self.network(kspace, mask=sampling_mask) # size of kspace and mask: [B, T, H, W]
+                # 取最后一个阶段的结果
                 k_recon_2ch = k_recon_2ch[-1]
 
                 kspace_complex = torch.view_as_complex(k_recon_2ch)
