@@ -51,6 +51,10 @@ def data_consistency(k, k0, mask, noise_lvl=None):
     k0   - initially sampled elements in k-space
     mask - corresponding nonzero location
     """
+    # 在计算前检查输入
+    assert not torch.isnan(k).any(), "NaN in k"
+    assert not torch.isnan(k0).any(), "NaN in k0"
+    assert not torch.isnan(mask).any(), "NaN in mask"
     v = noise_lvl
     if v:  # noisy case
         out = (1 - mask) * k + mask * (k + v * k0) / (1 + v)
@@ -110,12 +114,12 @@ class DataConsistencyInKspace(nn.Module):
         # k = torch.fft(x, 2, normalized=self.normalized)
         # out = data_consistency(k, k0, mask, self.noise_lvl)
         # x_res = torch.ifft(out, 2, normalized=self.normalized)
-        # print('DataConsistencyInKspace-perform-x-shape:',x.shape) #torch.Size([1, 30, 256, 256, 2])
-        # print('DataConsistencyInKspace-perform-x-dtype:',x.dtype) #torch.complex64
-        # print('DataConsistencyInKspace-perform-k0-shape:',k0.shape) #torch.Size([1, 30, 256, 256, 2])
-        # print('DataConsistencyInKspace-perform-k0-dtype:',k0.dtype) #torch.float32
-        # print('DataConsistencyInKspace-perform-mask-shape:',mask.shape) #torch.Size([1, 30, 256, 256, 2])
-        # print('DataConsistencyInKspace-perform-mask-dtype:',mask.dtype) #torch.float32
+        print('DataConsistencyInKspace-perform-x-shape:',x.shape) #torch.Size([4, 18, 192, 192, 2])
+        print('DataConsistencyInKspace-perform-x-dtype:',x.dtype) # torch.float32
+        print('DataConsistencyInKspace-perform-k0-shape:',k0.shape) #torch.Size([4, 18, 192, 192, 2])
+        print('DataConsistencyInKspace-perform-k0-dtype:',k0.dtype) # torch.float32
+        print('DataConsistencyInKspace-perform-mask-shape:',mask.shape) #torch.Size([4, 18, 192, 192, 2])
+        print('DataConsistencyInKspace-perform-mask-dtype:',mask.dtype) #torch.float32
         # 将输入的实数数据转换为复数（假设x的最后一个维度是2，对应实部和虚部） 
         x_complex = torch.view_as_complex(x.contiguous())
 
@@ -127,8 +131,8 @@ class DataConsistencyInKspace(nn.Module):
         # out = data_consistency(k, k0, mask, self.noise_lvl)
         ###都转为复数，可能不对
         out = data_consistency(k, k0_complex, mask_complex, self.noise_lvl)
-        print('DataConsistencyInKspace-perform-out-shape:',out.shape) #torch.Size([4, 18, 192, 192])
-        print('DataConsistencyInKspace-perform-out-dtype:',out.dtype) #torch.complex64
+        # print('DataConsistencyInKspace-perform-out-shape:',out.shape) #torch.Size([4, 18, 192, 192])
+        # print('DataConsistencyInKspace-perform-out-dtype:',out.dtype) #torch.complex64
         # 执行2D逆FFT
         x_res_complex = torch.fft.ifft2(out, dim=(-2, -1), norm='ortho' if self.normalized else None)
 
@@ -207,7 +211,7 @@ class BCRNNlayer(nn.Module):
         self.CRNN_model = CRNNcell(self.input_size, self.hidden_size, self.kernel_size, dilation, iteration=self.iteration)
 
     def forward(self, input, input_iteration=None, test=False):
-        print('BCRNN-input-shape:',input.shape) #BCRNN-input-shape: torch.Size([18, 1, 2, 192, 192])
+        # print('BCRNN-input-shape:',input.shape) #torch.Size([18, 4, 2, 192, 192])
         nt, nb, nc, nx, ny = input.shape
         size_h = [nb, self.hidden_size, nx, ny]
         if test:
@@ -240,15 +244,29 @@ class BCRNNlayer(nn.Module):
             for i in range(nt):
                 hidden = self.CRNN_model(input[nt - i - 1], hidden)
                 output_b.append(hidden)
-
-        output_f = torch.cat(output_f)
-        output_b = torch.cat(output_b[::-1])
+        '''
+        报错:
+        File "/nfs/zzy/code/kt-Dynamic-MRI/network/kt_NEXT.py", line 77, in forward
+        out = self.bcrnn_2(out, None, test)
+        File "/root/anaconda3/envs/myvllm/lib/python3.10/site-packages/torch/nn/modules/module.py", line 1736, in _wrapped_call_impl
+        return self._call_impl(*args, **kwargs)
+        File "/root/anaconda3/envs/myvllm/lib/python3.10/site-packages/torch/nn/modules/module.py", line 1747, in _call_impl
+        return forward_call(*args, **kwargs)
+        File "/nfs/zzy/code/kt-Dynamic-MRI/network/layers.py", line 211, in forward
+        nt, nb, nc, nx, ny = input.shape
+        ValueError: not enough values to unpack (expected 5, got 4)
+        '''
+        # output_f = torch.cat(output_f)
+        # output_b = torch.cat(output_b[::-1])
+        # 修改此处：将torch.cat替换为torch.stack
+        output_f = torch.stack(output_f, dim=0)  # 形状变为 (nt, nb, hidden_size, nx, ny)
+        output_b = torch.stack(output_b[::-1], dim=0)
 
         output = output_f + output_b
-        print('BCRNNlayer-output-shape-1:',output.shape) #BCRNNlayer-output-shape-1: torch.Size([72, 64, 192, 192])
+        # print('BCRNNlayer-output-shape-1:',output.shape) #torch.Size([18, 4, 64, 192, 192])
         if nb == 1:
             output = output.view(nt, 1, self.hidden_size, nx, ny)
-        print('BCRNNlayer-output-shape-2:',output.shape) #BCRNNlayer-output-shape-2: torch.Size([72, 64, 192, 192])
+        # print('BCRNNlayer-output-shape-2:',output.shape) #torch.Size([18, 4, 64, 192, 192])
         return output
 
 class CRNN_i(nn.Module):
@@ -312,21 +330,38 @@ class TransformDataInXfSpaceTA(nn.Module):
         # k = torch.fft(x, 2, normalized=self.normalized)
         dim=(-2, -1)
         k_x_complex = torch.fft.fft2(x_complex, dim=dim, norm='ortho')
-        print('perform-k_x_comlex-shape:',k_x_complex.shape) #torch.Size([1, 30, 256, 256])
-        print('perform-k_x_comlex-dtype:',k_x_complex.dtype) # torch.complex64
+        # print('perform-k_x_comlex-shape:',k_x_complex.shape) #torch.Size([4, 18, 192, 192])
+        # print('perform-k_x_comlex-dtype:',k_x_complex.dtype) # torch.complex64
         k = torch.view_as_real(k_x_complex)
         if self.divide_by_n:
-            print('self.divide_by_n')
+            # print('self.divide_by_n')
+            '''
+            self.divide_by_n 打印如下:
+            perform-k_avg-shape-2: torch.Size([4, 192, 192])
+            perform-k_avg-dtype:-2 torch.complex64
+            perform-k_avg-shape-3: torch.Size([4, 18, 192, 192, 2])
+            perform-k_avg-dtype:-3 torch.float32
+            '''
             # k_avg = torch.div(torch.sum(k, 1), k.shape[1])
             k_avg = torch.div(torch.sum(k_x_complex, 1), k_x_complex.shape[1])
         else:
-            print('else----------')
+            # print('else----------')
+            '''
+            else时打印如下:
+            else----------
+            perform-k_avg-shape-1: torch.Size([4, 192, 192, 2])
+            perform-k_avg-dtype-1: torch.float32
+            perform-k_avg-shape-2: torch.Size([4, 192, 192, 2])
+            perform-k_avg-dtype:-2 torch.float32
+            perform-k_avg-shape-3: torch.Size([4, 18, 192, 192, 2])
+            perform-k_avg-dtype:-3 torch.float32
+            '''
             k_avg = torch.div(torch.sum(k, 1), torch.clamp(torch.sum(mask, 1), min=1))
-            print('perform-k_avg-shape-1:',k_avg.shape) #torch.Size([1, 256, 256])
-            print('perform-k_avg-dtype-1:',k_avg.dtype) #torch.complex64
+            # print('perform-k_avg-shape-1:',k_avg.shape) #torch.Size([4, 192, 192, 2])
+            # print('perform-k_avg-dtype-1:',k_avg.dtype) #torch.float32
             # k_avg = torch.div(torch.sum(k_x_complex, 1), torch.clamp(torch.sum(mask_complex, 1), min=1))
-        print('perform-k_avg-shape-2:',k_avg.shape) #torch.Size([1, 256, 256])
-        print('perform-k_avg-dtype:-2',k_avg.dtype) #torch.complex64
+        # print('perform-k_avg-shape-2:',k_avg.shape) #torch.Size([4, 192, 192])
+        # print('perform-k_avg-dtype:-2',k_avg.dtype) #torch.complex64
         # k_avg = torch.view_as_real(k_avg)
         # 确保 k_avg 是实虚部分离的浮点张量
         if k_avg.dtype in [torch.complex64, torch.complex128]:
@@ -336,8 +371,8 @@ class TransformDataInXfSpaceTA(nn.Module):
         # repeat the temporal frame and
         # k_avg = k_avg.repeat(1, k.shape[1], 1, 1, 1)
         k_avg = k_avg.repeat(1, k_x_complex.shape[1], 1, 1, 1)
-        print('perform-k_avg-shape-3:',k_avg.shape) #torch.Size([1, 30, 256, 256, 2])
-        print('perform-k_avg-dtype:-3',k_avg.dtype) #torch.float32
+        # print('perform-k_avg-shape-3:',k_avg.shape) #torch.Size([4, 18, 192, 192, 2])
+        # print('perform-k_avg-dtype:-3',k_avg.dtype) #torch.float32
         k_avg_complex = torch.view_as_complex(k_avg.contiguous())
         
         # subtract the temporal average frame

@@ -73,7 +73,7 @@ class CRNN_MRI(nn.Module):
         x = x.permute(4, 0, 1, 2, 3)
 
         out = self.bcrnn_1(x, None, test)
-        print('CRNN_MRI-out-shape-1:',out.shape) #CRNN_MRI-out-shape-1: torch.Size([72, 64, 192, 192])
+        # print('CRNN_MRI-out-shape-1:',out.shape) #torch.Size([18, 4, 64, 192, 192])
         out = self.bcrnn_2(out, None, test)
         out = self.bcrnn_3(out, None, test)
         out = self.bcrnn_4(out, None, test)
@@ -140,7 +140,7 @@ class kt_NEXT_model(nn.Module):
             xf_out = xf_out.view(-1, ny, 2, nx, nt)
             xf_out = xf_out.permute(0, 2, 3, 1, 4)  # (n, nc, nx, ny, nt)
             xf_out = xf_out + xf_avg
-            # print('kt_NEXT_model-forward-xf_out-shape:',xf_out.shape) #torch.Size([1, 2, 256, 256, 30])
+            # print('kt_NEXT_model-forward-xf_out-shape:',xf_out.shape) #torch.Size([1, 2, 192, 192, 18])
             # print('kt_NEXT_model-forward-xf_out-dtype:',xf_out.dtype) #torch.float32
             xf_out = xf_out.permute(0,2,3,4,1)
             xf_out_complex = torch.view_as_complex(xf_out.contiguous())  # 转换为复数

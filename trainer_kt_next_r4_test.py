@@ -13,8 +13,10 @@ from model.kt_NEXT import kt_NEXT_model
 import matplotlib.pyplot as plt
 from torch.utils.data import random_split
 from numpy.fft import fft, fft2, ifftshift, fftshift
+from utils.mri_related import fft2c,ifft2c
 
 from os.path import join
+from scipy.io import savemat
 
 from losses import CriterionKGIN
 from utils import count_parameters, Logger, adjust_learning_rate as adjust_lr, NativeScalerWithGradNormCount as NativeScaler, add_weight_decay
@@ -43,7 +45,7 @@ os.environ['PYTORCH_CUDA_ALLOC_CONF'] = 'max_split_size_mb:256'
 # os.environ['CUDA_VISIBLE_DEVICES'] = '6'  # 指定使用 GPU 1 和 GPU 4
 os.environ['CUDA_VISIBLE_DEVICES'] = '5'  # 指定使用 GPU 1 和 GPU 4
 
-# 设置环境变量 CUDA_VISIBLE_DEVICES  0-1(nvidia--os) 3-6 4-7  5--0 
+# 设置环境变量 CUDA_VISIBLE_DEVICES  0-1(nvidia--os) 3-6 4-7  5--0  6--2 7--3
 # os.environ['CUDA_VISIBLE_DEVICES'] = '0,1'  # 指定使用 GPU 1 和 GPU 4
 # os.environ['CUDA_VISIBLE_DEVICES'] = '4,7'  # 指定使用 GPU 7 和 GPU 3
 # os.environ['CUDA_VISIBLE_DEVICES'] = '1,4'  # 指定使用 GPU 4 和 GPU 7
@@ -54,7 +56,7 @@ cuda = True if torch.cuda.is_available() else False
 Tensor = torch.cuda.FloatTensor if cuda else torch.Tensor
 criterion = torch.nn.MSELoss()
 
-# nohup python train_kt_next_r4_test.py --config config_kt_next_test.yaml > log_0107.txt 2>&1 &
+# nohup python train_kt_next_r4_test.py --config config_kt_next_test.yaml > log_0302_3.txt 2>&1 &
 class TrainerAbstract:
     def __init__(self, config):
         print("TrainerAbstract initialized.")
@@ -222,6 +224,8 @@ class TrainerKInterpolator(TrainerAbstract):
             # im_undersample, k_undersample, mask, im_groudtruth = prep_input(ref_img, self.acc_rate_value,centred=True)
             # x_und, k_und, mask, x_gnd, xf_gnd = prep_input(ref_img, self.acc_rate_value)
             # im_undersample, k_undersample, mask, im_groudtruth, xf_gnd = prep_input(ref_img, self.acc_rate_value)
+            # 初始化 save_last 为 False
+            save_last = False
             # 数据加载和预处理
             try:
                 # ref_kspace, ref_img = multicoil2single(kspace, coilmaps)
@@ -283,9 +287,9 @@ class TrainerKInterpolator(TrainerAbstract):
             self.scaler.step(self.optimizer)
             self.scaler.update()
             # 手动释放内存
-            del im_undersample, k_undersample, mask, xf_out, img
+            # del im_undersample, k_undersample, mask, xf_out, img
             # 释放显存
-            torch.cuda.empty_cache()
+            # torch.cuda.empty_cache()
 
             train_err += loss.item()
             train_batches += 1
@@ -306,15 +310,23 @@ class TrainerKInterpolator(TrainerAbstract):
             save_last = is_last_epoch and is_last_batch
             # print('train_one_epoch-save_last:',save_last)
             # 保存最后一个 epoch 和最后一个 batch 的数据
+            # 保存最后一个 epoch 和最后一个 batch 的数据
+            if save_last:
+                # print('train_one_epoch-save_last:',save_last)
+                save_last_batch_data(im_undersample,k_undersample,mask,im_groudtruth,save_dir_run)
+            # 手动释放内存
+            del im_undersample, k_undersample, mask, xf_out, img
+            # 释放显存
+            torch.cuda.empty_cache()
             # if save_last:
             #     print('train_one_epoch-save_last:',save_last)
             #     save_last_batch_data(im_undersample,k_undersample,mask,im_groudtruth,save_dir_run)
-            if save_last:
-                # 确保所有变量存在
-                if 'im_undersample' in locals() and 'k_undersample' in locals() and 'mask' in locals() and 'im_groudtruth' in locals():
-                    save_last_batch_data(im_undersample, k_undersample, mask, im_groudtruth, save_dir_run)
-                else:
-                    print("Error: Variables not defined for saving last batch data.")
+            # if save_last:
+            #     # 确保所有变量存在
+            #     if 'im_undersample' in locals() and 'k_undersample' in locals() and 'mask' in locals() and 'im_groudtruth' in locals():
+            #         save_last_batch_data(im_undersample, k_undersample, mask, im_groudtruth, save_dir_run)
+            #     else:
+            #         print("Error: Variables not defined for saving last batch data.")
         train_err /= train_batches
         print(" training loss:\t\t{:.6f}".format(train_err))
         # 在每个epoch结束时记录平均损失
@@ -342,7 +354,8 @@ class TrainerKInterpolator(TrainerAbstract):
         running_test_loss = 0.0
         epoch_test_loss = 0.0
         im_recon_list = []  # 用于存储 im_recon 张量
-
+        kspace_recon_list = [] #用于存储kspace
+        
         test_loss = []
         epoch_psnr = []
 
@@ -387,6 +400,13 @@ class TrainerKInterpolator(TrainerAbstract):
                     # im_recon = self.network(im_u, k_u, mask, test=True, model_save_dir=self.model_save_dir,save_last=save_last)
                     # print('train_one_epoch-im_recon-test-loss:',im_recon.requires_grad)
                     xf_out, img = self.network(im_undersample, k_undersample, mask)
+                    
+                    xf_out_nc = xf_out['t%d' % (self.nc-1)]
+                    # xf_out_nc = xf_out_nc.permute(0, 4, 1, 2, 3)
+                    img_out_nc= img['t%d' % (self.nc-1)]
+                    # print('run_test-xf_out_nc-shape:',xf_out_nc.shape) #torch.Size([1, 192, 192, 18, 2])
+                    # print('run_test-img_out_nc-shape:',img_out_nc.shape) #torch.Size([1, 2, 192, 192, 18])
+                    img_out_nc_permute = img_out_nc.permute(0,2,3,4,1)
                 '''
                 run_test-im_recon-shape: torch.Size([1, 2, 192, 192, 18])
                 run_test-im_recon-dtype: torch.float32
@@ -399,7 +419,8 @@ class TrainerKInterpolator(TrainerAbstract):
                 
                 im_und = from_tensor_format(im_undersample.cpu().numpy())
                 im_gnd = from_tensor_format(im_groudtruth.cpu().numpy())
-                im_rec = from_tensor_format(img['t%d' % (self.nc-1)].data.cpu().numpy())
+                # im_rec = from_tensor_format(img['t%d' % (self.nc-1)].data.cpu().numpy())
+                im_rec = from_tensor_format(img_out_nc.data.cpu().numpy())
                 
                 for idx in range(im_und.shape[0]):
                     base_psnr.append(complex_psnr(im_gnd[idx], im_und[idx]))
@@ -409,7 +430,18 @@ class TrainerKInterpolator(TrainerAbstract):
                 torch.cuda.empty_cache()
                 # print('run_test-im_recon-shape:',im_recon.shape)
                 # print('run_test-im_recon-dtype:',im_recon.dtype)
-                im_recon_list.append(img['t%d' % (self.nc-1)].data.cpu().numpy())  # 将 im_recon 转换为 numpy 数组并添加到列表中
+                # im_recon_list.append(img['t%d' % (self.nc-1)].data.cpu().numpy())  # 将 im_recon 转换为 numpy 数组并添加到列表中
+                img_out_nc_permute = img_out_nc_permute.contiguous()
+                img_out_nc_complex =  torch.view_as_complex(img_out_nc_permute)
+                im_recon_list.append(img_out_nc_complex.data.cpu().numpy())  # 将 im_recon 转换为 numpy 数组并添加到列表中
+                xf_out_nc = xf_out_nc.contiguous()
+                # print("xf_out_nc shape before view_as_complex:", xf_out_nc.shape) #torch.Size([1, 192, 192, 18, 2])
+                # print("xf_out_nc dtype before view_as_complex:", xf_out_nc.dtype) #torch.float32
+                # 确保数据类型正确（如果必要）
+                if xf_out_nc.dtype != torch.float32:
+                    xf_out_nc = xf_out_nc.to(torch.float32)
+                xf_out_nc_complex =  torch.view_as_complex(xf_out_nc)
+                kspace_recon_list.append(xf_out_nc_complex.data.cpu().numpy())  # 将 im_recon 转换为 numpy 数组并添加到列表中
 
                 # 计算损失
                 # loss = criterion(im_recon, gnd)
@@ -436,7 +468,8 @@ class TrainerKInterpolator(TrainerAbstract):
                     vis.append((
                         from_tensor_format(im_groudtruth.cpu().numpy())[0],
                         # from_tensor_format(im_recon.data.cpu().numpy())[0],
-                        from_tensor_format(img['t%d' % (self.nc-1)].data.cpu().numpy())[0],
+                        # from_tensor_format(img['t%d' % (self.nc-1)].data.cpu().numpy())[0],
+                        from_tensor_format(img_out_nc.data.cpu().numpy())[0],
                         from_tensor_format(im_undersample.cpu().numpy())[0],
                         from_tensor_format(mask.data.cpu().numpy(), mask=True)[0]
                     ))
@@ -475,8 +508,19 @@ class TrainerKInterpolator(TrainerAbstract):
             print(" test PSNR min:\t\t{:.6f}".format(np.min(epoch_psnr)))
             
             # 将 im_recon 保存为.npy 文件
+            # im_recon_array = np.concatenate(im_recon_list, axis=0)  # 拼接所有 im_recon 张量
+            # np.save(join(save_dir_run_test, 'im_recon.npy'), im_recon_array)  # 保存为.npy 文件
+            # 将 im_recon 保存为.npy 文件
             im_recon_array = np.concatenate(im_recon_list, axis=0)  # 拼接所有 im_recon 张量
             np.save(join(save_dir_run_test, 'im_recon.npy'), im_recon_array)  # 保存为.npy 文件
+            kspace_recon_array = np.concatenate(kspace_recon_list, axis=0)  # 拼接所有 im_recon 张量
+            np.save(join(save_dir_run_test, 'ksapce_recon.npy'), kspace_recon_array)  # 保存为.npy 文件
+            
+            # 将 im_recon 保存为.npy 文件
+            # im_recon_array = np.concatenate(im_recon_list, axis=0)  # 拼接所有 im_recon 张量
+            np.save(join(save_dir_run_test, 'im_recon_list.npy'), im_recon_list)  # 保存为.npy 文件
+            # kspace_recon_array = np.concatenate(kspace_recoon_list, axis=0)  # 拼接所有 im_recon 张量
+            np.save(join(save_dir_run_test, 'ksapce_recon_list.npy'), kspace_recon_list)  # 保存为.npy 文件
 
 
         # 保存图像和模型
@@ -873,7 +917,7 @@ def prep_input(im, acc=4.0):
     xf_gnd = fftshift(fft(ifftshift(im_np, axes=-1), norm='ortho'), axes=-1)
     xf_gnd = xf_gnd.transpose(0, 3, 1, 2)
     xf_gnd_l = torch.from_numpy(to_tensor_format(xf_gnd))
-    print('xf_gnd_l-shape:',xf_gnd_l.shape) #xf_gnd_l-shape: torch.Size([4, 2, 192, 192, 18])
+    # print('xf_gnd_l-shape:',xf_gnd_l.shape) #xf_gnd_l-shape: torch.Size([4, 2, 192, 192, 18])
     
     return im_und_l, k_und_l, mask_l, im_gnd_l,xf_gnd_l
 
