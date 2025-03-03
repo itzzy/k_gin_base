@@ -6,7 +6,7 @@ import glob
 import tqdm
 import time
 from torch.utils.data import DataLoader
-from dataset.dataloader import CINE2DT
+from dataset.dataloader import CINE2DT_vista as CINE2DT
 # from model.k_interpolator import KInterpolator
 # from model.model_pytorch import CRNN_MRI
 from model.kt_NEXT import kt_NEXT_model
@@ -43,9 +43,9 @@ os.environ['PYTORCH_CUDA_ALLOC_CONF'] = 'max_split_size_mb:256'
 # os.environ["CUDA_VISIBLE_DEVICES"] = "3" #,0,1,2,4,5,6,7
 # os.environ['CUDA_VISIBLE_DEVICES'] = '1'  # 指定使用 GPU 1 和 GPU 4
 # os.environ['CUDA_VISIBLE_DEVICES'] = '6'  # 指定使用 GPU 1 和 GPU 4
-os.environ['CUDA_VISIBLE_DEVICES'] = '3'  # 指定使用 GPU 1 和 GPU 4
+os.environ['CUDA_VISIBLE_DEVICES'] = '5'  # 指定使用 GPU 1 和 GPU 4
 
-# 设置环境变量 CUDA_VISIBLE_DEVICES  0-1(nvidia--os) 3-6 4-7  5--0  6--2 7--3
+# 设置环境变量 CUDA_VISIBLE_DEVICES  0-1(nvidia--os) 3-6 4-7  5--0 
 # os.environ['CUDA_VISIBLE_DEVICES'] = '0,1'  # 指定使用 GPU 1 和 GPU 4
 # os.environ['CUDA_VISIBLE_DEVICES'] = '4,7'  # 指定使用 GPU 7 和 GPU 3
 # os.environ['CUDA_VISIBLE_DEVICES'] = '1,4'  # 指定使用 GPU 4 和 GPU 7
@@ -56,14 +56,14 @@ cuda = True if torch.cuda.is_available() else False
 Tensor = torch.cuda.FloatTensor if cuda else torch.Tensor
 criterion = torch.nn.MSELoss()
 
-# nohup python train_kt_next_r4_test.py --config config_kt_next_test.yaml > log_0302_3.txt 2>&1 &
+# nohup python train_kt_next_vista_r4_test.py --config config_kt_next_vista_test.yaml > log_0107.txt 2>&1 &
 class TrainerAbstract:
     def __init__(self, config):
         print("TrainerAbstract initialized.")
         super().__init__()
         self.config = config.general
         self.debug = config.general.debug
-        if self.debug: config.general.exp_name = 'kt_next_test'
+        if self.debug: config.general.exp_name = 'kt_next_vista_test'
         self.experiment_dir = os.path.join(config.general.exp_save_root, config.general.exp_name)
         pathlib.Path(self.experiment_dir).mkdir(parents=True, exist_ok=True)
         
@@ -202,8 +202,7 @@ class TrainerKInterpolator(TrainerAbstract):
             # train_one_epoch-sampling_mask torch.Size([4, 18, 192])
             # print('train_one_epoch-sampling_mask', sampling_mask.shape)
             ref_kspace, ref_img = multicoil2single(kspace, coilmaps)
-            # train_one_epoch-ref_kspace torch.Size([4, 18, 192, 192])
-            # print('train_one_epoch-ref_kspace', ref_kspace.shape)
+            # print('train_one_epoch-ref_kspace', ref_kspace.shape) #torch.Size([2, 18, 192, 192]) batch_size=2是没问题的
             # train_one_epoch-ref_kspace-dtype: torch.complex64
             # print('train_one_epoch-ref_kspace-dtype:', ref_kspace.dtype)
             kspace = ref_kspace
@@ -218,18 +217,22 @@ class TrainerKInterpolator(TrainerAbstract):
             # print('train_one_epoch-ref_img_real', ref_img_real.shape)
             if ref_img.is_cuda:  # 判断张量是否在GPU上
                 ref_img = ref_img.cpu()  # 如果在GPU上，将其复制到CPU上
+            if sampling_mask.is_cuda:  # 判断张量是否在GPU上
+                sampling_mask = sampling_mask.cpu()  # 如果在GPU上，将其复制到CPU上
             # train_one_epoch-kspace_real-dtype: torch.float32
             # print('train_one_epoch-ref_img_real-dtype:', ref_img_real.dtype)
+            # print('train_one_epoch-sampling_mask-shape:', sampling_mask.shape) # torch.Size([4, 18, 192])
             # im_undersample, k_undersample, mask, im_groudtruth = prep_input(ref_img, self.acc_rate_value)
             # im_undersample, k_undersample, mask, im_groudtruth = prep_input(ref_img, self.acc_rate_value,centred=True)
             # x_und, k_und, mask, x_gnd, xf_gnd = prep_input(ref_img, self.acc_rate_value)
             # im_undersample, k_undersample, mask, im_groudtruth, xf_gnd = prep_input(ref_img, self.acc_rate_value)
+            # 数据加载和预处理
             # 初始化 save_last 为 False
             save_last = False
-            # 数据加载和预处理
             try:
                 # ref_kspace, ref_img = multicoil2single(kspace, coilmaps)
-                im_undersample, k_undersample, mask, im_groudtruth, xf_gnd = prep_input(ref_img, self.acc_rate_value)
+                # im_undersample, k_undersample, mask, im_groudtruth, xf_gnd = prep_input(ref_img, self.acc_rate_value)
+                im_undersample, k_undersample, mask, im_groudtruth, xf_gnd = prep_input(ref_img,sampling_mask, self.acc_rate_value)
             except Exception as e:
                 print(f"Error in data preparation: {e}")
                 continue  # 跳过当前batch
@@ -271,7 +274,7 @@ class TrainerKInterpolator(TrainerAbstract):
                 if torch.isnan(xf_out_nc).any():
                     print("NaN in xf_out output!")
                 # loss = criterion(img['t%d' % (nc - 1)], gnd) + criterion(xf_out['t%d' % (nc-1)], xf_gnd)
-                loss = criterion(img['t%d' % (self.nc - 1)], im_groudtruth) + criterion(xf_out_nc, xf_gnd)
+                loss = criterion(img['t%d' % (self.nc - 1)], im_groudtruth) + criterion(xf_out_nc, xf_gnd) #xf_gnd:label的kspace
             # if torch.isnan(loss.item()):
             #     print("training NaN detected in loss!")
             #     raise ValueError("training Loss is NaN")
@@ -286,10 +289,6 @@ class TrainerKInterpolator(TrainerAbstract):
             self.scaler.scale(loss).backward()
             self.scaler.step(self.optimizer)
             self.scaler.update()
-            # 手动释放内存
-            # del im_undersample, k_undersample, mask, xf_out, img
-            # 释放显存
-            # torch.cuda.empty_cache()
 
             train_err += loss.item()
             train_batches += 1
@@ -310,7 +309,6 @@ class TrainerKInterpolator(TrainerAbstract):
             save_last = is_last_epoch and is_last_batch
             # print('train_one_epoch-save_last:',save_last)
             # 保存最后一个 epoch 和最后一个 batch 的数据
-            # 保存最后一个 epoch 和最后一个 batch 的数据
             if save_last:
                 # print('train_one_epoch-save_last:',save_last)
                 save_last_batch_data(im_undersample,k_undersample,mask,im_groudtruth,save_dir_run)
@@ -318,12 +316,18 @@ class TrainerKInterpolator(TrainerAbstract):
             del im_undersample, k_undersample, mask, xf_out, img
             # 释放显存
             torch.cuda.empty_cache()
+            
             # if save_last:
             #     print('train_one_epoch-save_last:',save_last)
-            #     save_last_batch_data(im_undersample,k_undersample,mask,im_groudtruth,save_dir_run)
-            # if save_last:
             #     # 确保所有变量存在
             #     if 'im_undersample' in locals() and 'k_undersample' in locals() and 'mask' in locals() and 'im_groudtruth' in locals():
+            #         save_last_batch_data(im_undersample, k_undersample, mask, im_groudtruth, save_dir_run)
+            #     else:
+            #         print("Error: Variables not defined for saving last batch data.")
+            # 保存最后一个 batch 的数据
+            # if save_last:
+            #     required_vars = ['im_undersample', 'k_undersample', 'mask', 'im_groudtruth']
+            #     if all(var in locals() for var in required_vars):
             #         save_last_batch_data(im_undersample, k_undersample, mask, im_groudtruth, save_dir_run)
             #     else:
             #         print("Error: Variables not defined for saving last batch data.")
@@ -331,6 +335,7 @@ class TrainerKInterpolator(TrainerAbstract):
         print(" training loss:\t\t{:.6f}".format(train_err))
         # 在每个epoch结束时记录平均损失
         self.writer.add_scalar('Training/Average_Loss', epoch_loss, epoch)
+        
     def run_test(self,epoch):
         # model_name = 'dc_rnn_test_demo'
         # # Configure directory info
@@ -354,8 +359,8 @@ class TrainerKInterpolator(TrainerAbstract):
         running_test_loss = 0.0
         epoch_test_loss = 0.0
         im_recon_list = []  # 用于存储 im_recon 张量
-        kspace_recon_list = [] #用于存储kspace
-        
+        kspace_recon_list = []
+
         test_loss = []
         epoch_psnr = []
 
@@ -372,7 +377,8 @@ class TrainerKInterpolator(TrainerAbstract):
                 # 如果图像在 GPU 上，将其转换到 CPU
                 if ref_img.is_cuda:
                     ref_img = ref_img.cpu()
-
+                if sampling_mask.is_cuda:
+                    sampling_mask = sampling_mask.cpu()
                 # 准备输入数据
                 # im_und, k_und, mask, im_gnd = prep_input(ref_img, self.acc_rate_value)
                 # im_und, k_und, mask, im_gnd = prep_input(ref_img, self.acc_rate_value,centred=True)
@@ -380,7 +386,8 @@ class TrainerKInterpolator(TrainerAbstract):
                 # k_u = Variable(k_und.type(Tensor))
                 # mask = Variable(mask.type(Tensor))
                 # gnd = Variable(im_gnd.type(Tensor))
-                im_undersample, k_undersample, mask, im_groudtruth, xf_gnd = prep_input(ref_img, self.acc_rate_value)
+                # im_undersample, k_undersample, mask, im_groudtruth, xf_gnd = prep_input(ref_img, self.acc_rate_value)
+                im_undersample, k_undersample, mask, im_groudtruth, xf_gnd = prep_input(ref_img, sampling_mask,self.acc_rate_value)
             
                 im_undersample = Variable(im_undersample.type(Tensor))
                 k_undersample = Variable(k_undersample.type(Tensor))
@@ -407,10 +414,7 @@ class TrainerKInterpolator(TrainerAbstract):
                     # print('run_test-xf_out_nc-shape:',xf_out_nc.shape) #torch.Size([1, 192, 192, 18, 2])
                     # print('run_test-img_out_nc-shape:',img_out_nc.shape) #torch.Size([1, 2, 192, 192, 18])
                     img_out_nc_permute = img_out_nc.permute(0,2,3,4,1)
-                '''
-                run_test-im_recon-shape: torch.Size([1, 2, 192, 192, 18])
-                run_test-im_recon-dtype: torch.float32
-                '''
+                    
                 img_test_loss = criterion(img['t%d' % (self.nc-1)], im_groudtruth)
                 if torch.isnan(img_test_loss):
                     print("test NaN detected in loss!")
@@ -442,7 +446,7 @@ class TrainerKInterpolator(TrainerAbstract):
                     xf_out_nc = xf_out_nc.to(torch.float32)
                 xf_out_nc_complex =  torch.view_as_complex(xf_out_nc)
                 kspace_recon_list.append(xf_out_nc_complex.data.cpu().numpy())  # 将 im_recon 转换为 numpy 数组并添加到列表中
-
+                
                 # 计算损失
                 # loss = criterion(im_recon, gnd)
                 # print('train_one_epoch-im_recon-test-loss:',im_recon.requires_grad)
@@ -507,9 +511,6 @@ class TrainerKInterpolator(TrainerAbstract):
             print(" base PSNR min:\t\t{:.6f}".format(np.min(base_psnr)))
             print(" test PSNR min:\t\t{:.6f}".format(np.min(epoch_psnr)))
             
-            # 将 im_recon 保存为.npy 文件
-            # im_recon_array = np.concatenate(im_recon_list, axis=0)  # 拼接所有 im_recon 张量
-            # np.save(join(save_dir_run_test, 'im_recon.npy'), im_recon_array)  # 保存为.npy 文件
             # 将 im_recon 保存为.npy 文件
             im_recon_array = np.concatenate(im_recon_list, axis=0)  # 拼接所有 im_recon 张量
             np.save(join(save_dir_run_test, 'im_recon.npy'), im_recon_array)  # 保存为.npy 文件
@@ -639,6 +640,13 @@ def save_last_batch_data(im_undersample,k_undersample,mask,im_groudtruth,save_di
     # print('save_last_batch_data-k_undersample-dtype:', k_undersample.dtype) # torch.float32
     # print('train_one_epoch-mask', mask.shape)
     # print('train_one_epoch-im_groudtruth', im_groudtruth.shape)
+    '''
+    save_last_batch_data-k_undersample_permute torch.Size([2, 18, 192, 192, 2])
+    save_last_batch_data-k_undersamplex_complex-shape: torch.Size([2, 18, 192, 192])
+    save_last_batch_data-k_undersamplex_complex-dtype: torch.complex64
+    save_last_batch_data-k_undersample_img-shape: torch.Size([2, 18, 192, 192])
+    save_last_batch_data-k_undersample_img-dtype: torch.complex64
+    '''
     # 将 Tensor 转换为 numpy 数组  k_undersample为五维tensor
     k_undersample_permute = k_undersample.permute(0, 4, 2, 3,1)
     # print('save_last_batch_data-k_undersample_permute', k_undersample_permute.shape) #torch.Size([2, 18, 192, 192, 2])
@@ -811,115 +819,187 @@ def save_last_batch_data(im_undersample,k_undersample,mask,im_groudtruth,save_di
 #     # print('prep_input-mask_l-shape-2:', mask_l.shape)
 #     return im_und_l, k_und_l, mask_l, im_gnd_l
 
-def prep_input(im, acc=4.0):
+def prep_input(im, mask, acc=4.0):
     """
-    Undersample the batch, then reformat them into what the network accepts.
+    Undersample the batch using the provided mask, then reformat them into what the network accepts.
 
     Parameters
     ----------
-    gauss_ivar: float - controls the undersampling rate.
-                    higher the value, more undersampling
+    im: torch.Tensor - input image data of shape (batch_size, time, height, width)
+    mask: torch.Tensor or np.ndarray - undersampling mask of shape (batch_size, time, height, width)
+    acc: float - acceleration factor (for compatibility, not used here)
     """
-    # 调整mask维度顺序使其符合后续操作要求（如果需要的话，根据实际情况调整）
-    # 假设原本的操作期望mask维度顺序为 (batch_size, height, width)，而新生成的mask维度顺序不符合，进行如下调整
-    # if len(mask.shape) == 2:  # 假设新生成的mask是二维的，若实际情况不同需相应修改判断条件
-    #     mask = np.expand_dims(mask, axis=0)  # 添加batch_size维度（这里假设batch_size维度为0，根据实际调整）
-    # mask = np.transpose(mask, (0, 2, 1))  # 调整height和width维度顺序，同样根据实际期望顺序调整
+    # 确保mask是NumPy数组（如果是Tensor则转换）
+    # if isinstance(mask, torch.Tensor):
+    #     mask = mask.numpy()
+    # 确保 im 和 mask 在 CPU 上
+    if isinstance(im, torch.Tensor):
+        im = im.cpu()  # 将张量移动到 CPU
+    if isinstance(mask, torch.Tensor):
+        mask = mask.cpu()  # 将张量移动到 CPU
     
-    # 扩展 mask 以匹配 ref_img 的维度 [batch, time, height, width]
-    # print('prep_input-im-shape:', im.shape) #torch.Size([4, 18, 192, 192])
-    batch_size, time, height, width = im.shape
-    # mask = get_cine_mask(acc, x=width, y=height)  # x 和 y 要与输入图像的宽度和高度一致
-    # mask = get_cine_mask(int(acc), x=width, y=height)
-    mask = get_cine_mask(int(acc), x=time, y=height)
-    '''
-    prep_input-mask-shape: (192, 18)
-    prep_input-mask-dtype: float64
-    '''
-    # print('prep_input-mask-shape:', mask.shape)
-    # print('prep_input-mask-dtype:', mask.dtype)
-    # 对 mask 进行转置操作  class CINE2DT(torch.utils.data.Dataset)有以下代码：
-    # self.mask = np.transpose(self.mask,[1,0])
-    # mask = np.transpose(mask,[1,0]) #prep_input-mask-shape: (18,192)
+    # 扩展mask的维度到 (batch, time, height, width)
+    if mask.ndim == 3:
+        # 假设mask的原始形状是 (batch, time, height)，将其扩展为 (batch, time, height, 1)
+        mask = mask[:, :, :, np.newaxis]
+        # 复制width次，假设width与im的width相同
+        width = im.shape[3]
+        mask = np.repeat(mask, width, axis=3)
+    # 检查维度是否匹配
+    assert mask.shape == im.shape, f"Mask shape {mask.shape} != input shape {im.shape}"
     
-    mask = np.expand_dims(mask, axis=0)  # 添加 batch 维度
-    mask = np.expand_dims(mask, axis=0)  # 添加 time 维度
-    # mask = np.tile(mask, (batch_size, time, 1, 1))  # 广播到完整形状
-    # 得到的mask: (2, 192, 192, 18) (2, 192, 18, 192)
-    mask = np.tile(mask, (batch_size, width, 1, 1))  # 广播到完整形状
-    # print('prep_iuput-mask:',mask.shape) #prep_iuput-mask: (4, 192, 192, 18)
-    # AttributeError: 'numpy.ndarray' object has no attribute 'permute'
-    # mask = mask.permute(0,3,2,1)
-    # 将 NumPy 数组转换为 PyTorch 张量
-    mask_tensor = torch.from_numpy(mask)
-
-    # 使用 permute 方法重新排列维度
-    mask_permuted = mask_tensor.permute(0, 3, 1, 2)
-    # mask_permuted = mask_tensor.permute(0, 2, 1, 3)
-    # prep_input-mask_permuted-shape: torch.Size([2, 18, 192, 192])
-    # prep_input-mask_permuted-shape: torch.Size([4, 18, 192, 192])
-    # print('prep_input-mask_permuted-shape:', mask_permuted.shape) 
-    
-    # 将 mask 转为 torch.Tensor，并调整为网络接受的格式
-    # mask_l = torch.from_numpy(mask).to(dtype=torch.float32)  # 转换数据类型为 float32
-    # # prep_input-mask_l-shape: torch.Size([2, 18, 192, 18])
-    # # prep_input-mask_l-dtype: torch.float32
-    # print('prep_input-mask_l-shape:', mask_l.shape)
-    # print('prep_input-mask_l-dtype:', mask_l.dtype)
-    # mask_l = torch.from_numpy(to_tensor_format(mask, mask=True))
-    # mask_l = torch.from_numpy(to_tensor_format(mask, mask=True))
-    # prep_iuput-mask: (4, 192, 192, 18)
-    mask_l = torch.from_numpy(to_tensor_format(mask, mask=True))
-    # prep_input-mask_l-shape-1: torch.Size([2, 2, 18, 192,192])
-    # prep_input-mask_l-dtype-1: torch.float64
-    # mask_l = mask_l.permute(0, 1, 3,4,2)
-    mask_l = mask_l.permute(0, 1,4,2,3)
-    # prep_input-mask_l-shape-1: torch.Size([1, 2, 192, 192, 18])
-    # prep_input-mask_l-dtype-1: torch.float64
-    # print('prep_input-mask_l-shape-1:',mask_l.shape)
-    # print('prep_input-mask_l-dtype-1:',mask_l.dtype)
-    # 使用 permute 方法重新排列维度
-    # adjusted_mask = mask_l.permute(0, 1, 2, 4, 3)
-    # mask_l = adjusted_mask
-    # im_und, k_und = cs.undersample(im, mask, centred=False, norm='ortho')
-    # 对输入图像进行下采样
-    # 将输入图像转换为 numpy 格式（如果 im 是 torch.Tensor）
+    # 转换为 NumPy 数组
     im_np = im.numpy() if isinstance(im, torch.Tensor) else im
-    mask_np = mask_permuted.numpy() if isinstance(mask_permuted, torch.Tensor) else mask_permuted
-    # prep_input-mask_np-shape: (2, 18, 192, 192)
-    # prep_input-im_np-shape: (2, 18, 192, 192)
-    # print('prep_input-mask_np-shape:', mask_np.shape)
-    # print('prep_input-im_np-shape:', im_np.shape)
-    # im_und, k_und = cs.undersample(im_np, mask, centred=False, norm='ortho')
+    mask_np = mask.numpy() if isinstance(mask, torch.Tensor) else mask
+    # print('prep_np-shape:',im_np.shape) #(4, 18, 192, 192)
+    # print('prep-mask-shape:',mask.shape) #torch.Size([4, 18, 192, 192])
+    
+    # 获取输入图像的维度信息
+    batch_size, time, height, width = im.shape
+    
+    # 检查mask的维度是否匹配
+    assert mask.shape == (batch_size, time, height, width), \
+        f"Mask shape {mask.shape} does not match input shape {(batch_size, time, height, width)}"
+    
+    # 调整mask维度顺序（假设原始mask的维度为 [batch, time, height, width]）
+    # 根据后续处理的需要，可能需要转置或扩展维度
+    # mask = np.transpose(mask, (0, 2, 3, 1))  # 调整为 [batch, height, width, time]
+    # mask = np.expand_dims(mask, axis=1)      # 添加通道维度 [batch, 1, height, width, time]
+    
+    # 转换为PyTorch张量并进行维度排列
+    # mask_tensor = torch.from_numpy(mask).permute(0, 1, 4, 2, 3)  # [batch, 1, time, height, width]
+    # mask_tensor = mask_tensor.to(torch.float32)
+    
+    # 对输入图像进行下采样
+    # im_np = im.numpy() if isinstance(im, torch.Tensor) else im
     im_und, k_und = cs.undersample(im_np, mask_np, centred=False, norm='ortho')
-    # im_und, k_und = cs.undersample(im_np, mask_np, centred=True, norm='ortho')
-    # prep_input-im_und-shape: (1, 18, 192, 192)
-    # print('prep_input-im_und-shape:', im_und.shape)
-    # print('prep_input-im_und-dtype:', im_und.dtype) #complex128
- 
-    im_gnd_l = torch.from_numpy(to_tensor_format(im))
-    im_und_l = torch.from_numpy(to_tensor_format(im_und))
-    k_und_l = torch.from_numpy(to_tensor_format(k_und))
-    # prep_input-im_gnd_l-shape: torch.Size([1, 2, 192, 192, 18])
-    # prep_input-im_und_l-shape: torch.Size([1, 2, 192, 192, 18])
-    # prep_input-k_und_l-shape: torch.Size([1, 2, 192, 192, 18])
-    # print('prep_input-im_gnd_l-shape:', im_gnd_l.shape)
-    # print('prep_input-im_und_l-shape:', im_und_l.shape)
-    # print('prep_input-k_und_l-shape:', k_und_l.shape)
-
-    # 根据新mask的结构和维度，调整mask转换为张量的方式以及维度处理（示例，需根据实际调整）
-    # mask_l = torch.from_numpy(mask.astype(np.float32))  # 转换数据类型为float32（假设符合后续要求，根据实际调整）
-    # if len(mask_l.shape) == 3:  # 如果mask_l维度是3维，添加通道维度等操作（根据实际网络输入要求调整）
-    #     mask_l = mask_l.unsqueeze(1)  # 在维度1的位置添加通道维度，假设符合网络对mask输入维度要求
-    # prep_input-mask_l-shape-2: torch.Size([1, 2, 192, 192, 18])
-    # print('prep_input-mask_l-shape-2:', mask_l.shape)
+    
+    # 转换为网络接受的张量格式
+    im_gnd_l = torch.from_numpy(to_tensor_format(im)).float()
+    im_und_l = torch.from_numpy(to_tensor_format(im_und)).float()
+    k_und_l = torch.from_numpy(to_tensor_format(k_und)).float()
+    # mask_l = torch.from_numpy(to_tensor_format(mask.numpy(), mask=True)).float()
+    mask_l = torch.from_numpy(to_tensor_format(mask_np, mask=True)).float()
+    
+    # return im_und_l, k_und_l, mask_l, im_gnd_l
     im_np = im_np.transpose(0, 2, 3, 1)
     xf_gnd = fftshift(fft(ifftshift(im_np, axes=-1), norm='ortho'), axes=-1)
     xf_gnd = xf_gnd.transpose(0, 3, 1, 2)
     xf_gnd_l = torch.from_numpy(to_tensor_format(xf_gnd))
-    # print('xf_gnd_l-shape:',xf_gnd_l.shape) #xf_gnd_l-shape: torch.Size([4, 2, 192, 192, 18])
+    # print('xf_gnd_l-shape:',xf_gnd_l.shape) #torch.Size([4, 2, 192, 192, 18])
     
     return im_und_l, k_und_l, mask_l, im_gnd_l,xf_gnd_l
+
+
+# def prep_input(im, acc=4.0):
+#     """
+#     Undersample the batch, then reformat them into what the network accepts.
+
+#     Parameters
+#     ----------
+#     gauss_ivar: float - controls the undersampling rate.
+#                     higher the value, more undersampling
+#     """
+#     # 调整mask维度顺序使其符合后续操作要求（如果需要的话，根据实际情况调整）
+#     # 假设原本的操作期望mask维度顺序为 (batch_size, height, width)，而新生成的mask维度顺序不符合，进行如下调整
+#     # if len(mask.shape) == 2:  # 假设新生成的mask是二维的，若实际情况不同需相应修改判断条件
+#     #     mask = np.expand_dims(mask, axis=0)  # 添加batch_size维度（这里假设batch_size维度为0，根据实际调整）
+#     # mask = np.transpose(mask, (0, 2, 1))  # 调整height和width维度顺序，同样根据实际期望顺序调整
+    
+#     # 扩展 mask 以匹配 ref_img 的维度 [batch, time, height, width]
+#     # print('prep_input-im-shape:', im.shape) #torch.Size([4, 18, 192, 192])
+#     batch_size, time, height, width = im.shape
+#     # mask = get_cine_mask(acc, x=width, y=height)  # x 和 y 要与输入图像的宽度和高度一致
+#     # mask = get_cine_mask(int(acc), x=width, y=height)
+#     mask = get_cine_mask(int(acc), x=time, y=height)
+#     '''
+#     prep_input-mask-shape: (192, 18)
+#     prep_input-mask-dtype: float64
+#     '''
+#     # print('prep_input-mask-shape:', mask.shape)
+#     # print('prep_input-mask-dtype:', mask.dtype)
+#     # 对 mask 进行转置操作  class CINE2DT(torch.utils.data.Dataset)有以下代码：
+#     # self.mask = np.transpose(self.mask,[1,0])
+#     # mask = np.transpose(mask,[1,0]) #prep_input-mask-shape: (18,192)
+    
+#     mask = np.expand_dims(mask, axis=0)  # 添加 batch 维度
+#     mask = np.expand_dims(mask, axis=0)  # 添加 time 维度
+#     # mask = np.tile(mask, (batch_size, time, 1, 1))  # 广播到完整形状
+#     # 得到的mask: (2, 192, 192, 18) (2, 192, 18, 192)
+#     mask = np.tile(mask, (batch_size, width, 1, 1))  # 广播到完整形状
+#     # print('prep_iuput-mask:',mask.shape) #prep_iuput-mask: (4, 192, 192, 18)
+#     # AttributeError: 'numpy.ndarray' object has no attribute 'permute'
+#     # mask = mask.permute(0,3,2,1)
+#     # 将 NumPy 数组转换为 PyTorch 张量
+#     mask_tensor = torch.from_numpy(mask)
+
+#     # 使用 permute 方法重新排列维度
+#     mask_permuted = mask_tensor.permute(0, 3, 1, 2)
+#     # mask_permuted = mask_tensor.permute(0, 2, 1, 3)
+#     # prep_input-mask_permuted-shape: torch.Size([2, 18, 192, 192])
+#     # prep_input-mask_permuted-shape: torch.Size([4, 18, 192, 192])
+#     # print('prep_input-mask_permuted-shape:', mask_permuted.shape) 
+    
+#     # 将 mask 转为 torch.Tensor，并调整为网络接受的格式
+#     # mask_l = torch.from_numpy(mask).to(dtype=torch.float32)  # 转换数据类型为 float32
+#     # # prep_input-mask_l-shape: torch.Size([2, 18, 192, 18])
+#     # # prep_input-mask_l-dtype: torch.float32
+#     # print('prep_input-mask_l-shape:', mask_l.shape)
+#     # print('prep_input-mask_l-dtype:', mask_l.dtype)
+#     # mask_l = torch.from_numpy(to_tensor_format(mask, mask=True))
+#     # mask_l = torch.from_numpy(to_tensor_format(mask, mask=True))
+#     # prep_iuput-mask: (4, 192, 192, 18)
+#     mask_l = torch.from_numpy(to_tensor_format(mask, mask=True))
+#     # prep_input-mask_l-shape-1: torch.Size([2, 2, 18, 192,192])
+#     # prep_input-mask_l-dtype-1: torch.float64
+#     # mask_l = mask_l.permute(0, 1, 3,4,2)
+#     mask_l = mask_l.permute(0, 1,4,2,3)
+#     # prep_input-mask_l-shape-1: torch.Size([1, 2, 192, 192, 18])
+#     # prep_input-mask_l-dtype-1: torch.float64
+#     # print('prep_input-mask_l-shape-1:',mask_l.shape)
+#     # print('prep_input-mask_l-dtype-1:',mask_l.dtype)
+#     # 使用 permute 方法重新排列维度
+#     # adjusted_mask = mask_l.permute(0, 1, 2, 4, 3)
+#     # mask_l = adjusted_mask
+#     # im_und, k_und = cs.undersample(im, mask, centred=False, norm='ortho')
+#     # 对输入图像进行下采样
+#     # 将输入图像转换为 numpy 格式（如果 im 是 torch.Tensor）
+#     im_np = im.numpy() if isinstance(im, torch.Tensor) else im
+#     mask_np = mask_permuted.numpy() if isinstance(mask_permuted, torch.Tensor) else mask_permuted
+#     # prep_input-mask_np-shape: (2, 18, 192, 192)
+#     # prep_input-im_np-shape: (2, 18, 192, 192)
+#     # print('prep_input-mask_np-shape:', mask_np.shape)
+#     # print('prep_input-im_np-shape:', im_np.shape)
+#     # im_und, k_und = cs.undersample(im_np, mask, centred=False, norm='ortho')
+#     im_und, k_und = cs.undersample(im_np, mask_np, centred=False, norm='ortho')
+#     # im_und, k_und = cs.undersample(im_np, mask_np, centred=True, norm='ortho')
+#     # prep_input-im_und-shape: (1, 18, 192, 192)
+#     # print('prep_input-im_und-shape:', im_und.shape)
+#     # print('prep_input-im_und-dtype:', im_und.dtype) #complex128
+ 
+#     im_gnd_l = torch.from_numpy(to_tensor_format(im))
+#     im_und_l = torch.from_numpy(to_tensor_format(im_und))
+#     k_und_l = torch.from_numpy(to_tensor_format(k_und))
+#     # prep_input-im_gnd_l-shape: torch.Size([1, 2, 192, 192, 18])
+#     # prep_input-im_und_l-shape: torch.Size([1, 2, 192, 192, 18])
+#     # prep_input-k_und_l-shape: torch.Size([1, 2, 192, 192, 18])
+#     # print('prep_input-im_gnd_l-shape:', im_gnd_l.shape)
+#     # print('prep_input-im_und_l-shape:', im_und_l.shape)
+#     # print('prep_input-k_und_l-shape:', k_und_l.shape)
+
+#     # 根据新mask的结构和维度，调整mask转换为张量的方式以及维度处理（示例，需根据实际调整）
+#     # mask_l = torch.from_numpy(mask.astype(np.float32))  # 转换数据类型为float32（假设符合后续要求，根据实际调整）
+#     # if len(mask_l.shape) == 3:  # 如果mask_l维度是3维，添加通道维度等操作（根据实际网络输入要求调整）
+#     #     mask_l = mask_l.unsqueeze(1)  # 在维度1的位置添加通道维度，假设符合网络对mask输入维度要求
+#     # prep_input-mask_l-shape-2: torch.Size([1, 2, 192, 192, 18])
+#     # print('prep_input-mask_l-shape-2:', mask_l.shape)
+#     im_np = im_np.transpose(0, 2, 3, 1)
+#     xf_gnd = fftshift(fft(ifftshift(im_np, axes=-1), norm='ortho'), axes=-1)
+#     xf_gnd = xf_gnd.transpose(0, 3, 1, 2)
+#     xf_gnd_l = torch.from_numpy(to_tensor_format(xf_gnd))
+#     print('xf_gnd_l-shape:',xf_gnd_l.shape) #xf_gnd_l-shape: torch.Size([4, 2, 192, 192, 18])
+    
+#     return im_und_l, k_und_l, mask_l, im_gnd_l,xf_gnd_l
 
 # def prep_input(im, acc=4.0,centred=False):
 #     """Undersample the batch, then reformat them into what the network accepts.
@@ -957,76 +1037,76 @@ def prep_input(im, acc=4.0):
 #     return im_und_l, k_und_l, mask_l, im_gnd_l
 
 
-from numpy.lib.stride_tricks import as_strided
-def normal_pdf(length, sensitivity):
-    return np.exp(-sensitivity * (np.arange(length) - length / 2)**2)
+# from numpy.lib.stride_tricks import as_strided
+# def normal_pdf(length, sensitivity):
+#     return np.exp(-sensitivity * (np.arange(length) - length / 2)**2)
 
-def cartesian_mask(shape, acc, sample_n=10, centred=False):
-    """
-    Sampling density estimated from implementation of kt FOCUSS
-    shape: tuple - of form (..., nx, ny)
-    acc: float - doesn't have to be integer 4, 8, etc..
-这段代码实现了一个生成笛卡尔采样掩码（Cartesian Mask）的函数 cartesian_mask，
-通常用于磁共振成像（MRI）中的欠采样（undersampling）任务。
-掩码的作用是决定在 k 空间（频率域）中哪些数据点被采样，哪些被忽略。以下是对代码的详细解读：
-函数功能
-目标：生成一个笛卡尔采样掩码，用于模拟 MRI 中的欠采样过程。
-输入参数：
-shape：掩码的形状，格式为 (..., nx, ny)，其中 nx 和 ny 是 k 空间的尺寸。
-acc：加速因子（acceleration factor），控制欠采样的程度。
-sample_n：中心区域的采样点数，通常用于保留 k 空间中心的低频信息。
-centred：是否将掩码中心化（默认不中心化）。
-输出：返回一个与 shape 形状相同的掩码，值为 0 或 1，表示是否采样。
-功能：
-生成一个笛卡尔采样掩码，用于 MRI 中的欠采样任务。
-支持控制加速因子、中心区域采样点数和是否中心化。
-核心逻辑：
-使用正态分布和均匀分布的混合 PDF 随机选择采样点。
-强制保留 k 空间中心区域的采样点。
-应用场景：
-用于模拟 MRI 中的欠采样过程，生成训练数据或测试数据。
-    """
-    # N：除了最后两个维度（nx 和 ny）之外的所有维度的乘积。 Nx 和 Ny：k 空间的尺寸（nx 和 ny）。
-    N, Nx, Ny = int(np.prod(shape[:-2])), shape[-2], shape[-1]
-    # 生成概率密度函数（PDF）
-#     normal_pdf：
-# 生成一个正态分布的概率密度函数（PDF），用于控制采样点的分布。
-# 正态分布的中心在 Nx/2，标准差为 Nx/10。
-    pdf_x = normal_pdf(Nx, 0.5/(Nx/10.)**2) 
-    lmda = Nx/(2.*acc) #根据加速因子 acc 计算的一个权重，用于调整采样密度。
-    n_lines = int(Nx / acc)
+# def cartesian_mask(shape, acc, sample_n=10, centred=False):
+#     """
+#     Sampling density estimated from implementation of kt FOCUSS
+#     shape: tuple - of form (..., nx, ny)
+#     acc: float - doesn't have to be integer 4, 8, etc..
+# 这段代码实现了一个生成笛卡尔采样掩码（Cartesian Mask）的函数 cartesian_mask，
+# 通常用于磁共振成像（MRI）中的欠采样（undersampling）任务。
+# 掩码的作用是决定在 k 空间（频率域）中哪些数据点被采样，哪些被忽略。以下是对代码的详细解读：
+# 函数功能
+# 目标：生成一个笛卡尔采样掩码，用于模拟 MRI 中的欠采样过程。
+# 输入参数：
+# shape：掩码的形状，格式为 (..., nx, ny)，其中 nx 和 ny 是 k 空间的尺寸。
+# acc：加速因子（acceleration factor），控制欠采样的程度。
+# sample_n：中心区域的采样点数，通常用于保留 k 空间中心的低频信息。
+# centred：是否将掩码中心化（默认不中心化）。
+# 输出：返回一个与 shape 形状相同的掩码，值为 0 或 1，表示是否采样。
+# 功能：
+# 生成一个笛卡尔采样掩码，用于 MRI 中的欠采样任务。
+# 支持控制加速因子、中心区域采样点数和是否中心化。
+# 核心逻辑：
+# 使用正态分布和均匀分布的混合 PDF 随机选择采样点。
+# 强制保留 k 空间中心区域的采样点。
+# 应用场景：
+# 用于模拟 MRI 中的欠采样过程，生成训练数据或测试数据。
+#     """
+#     # N：除了最后两个维度（nx 和 ny）之外的所有维度的乘积。 Nx 和 Ny：k 空间的尺寸（nx 和 ny）。
+#     N, Nx, Ny = int(np.prod(shape[:-2])), shape[-2], shape[-1]
+#     # 生成概率密度函数（PDF）
+# #     normal_pdf：
+# # 生成一个正态分布的概率密度函数（PDF），用于控制采样点的分布。
+# # 正态分布的中心在 Nx/2，标准差为 Nx/10。
+#     pdf_x = normal_pdf(Nx, 0.5/(Nx/10.)**2) 
+#     lmda = Nx/(2.*acc) #根据加速因子 acc 计算的一个权重，用于调整采样密度。
+#     n_lines = int(Nx / acc)
 
-    # add uniform distribution
-    pdf_x += lmda * 1./Nx  #在正态分布的基础上，添加一个均匀分布，确保采样点分布更加均匀。
-    #处理中心区域 如果指定了 sample_n，则在 k 空间中心区域保留 sample_n 个采样点。
-    # 将中心区域的 PDF 值设为 0，避免重复采样。
-    if sample_n:
-        pdf_x[Nx//2-sample_n//2:Nx//2+sample_n//2] = 0
-        # 重新归一化 PDF，确保概率总和为 1。
-        pdf_x /= np.sum(pdf_x)
-        # 减少需要随机采样的行数 n_lines。
-        n_lines -= sample_n
-    # 生成掩码
-    # 初始化一个形状为 (N, Nx) 的掩码，初始值为 0。
-    mask = np.zeros((N, Nx))
-    for i in range(N):
-        # 根据 PDF 随机选择 n_lines 个采样点，并将掩码中对应位置设为 1。
-        idx = np.random.choice(Nx, n_lines, False, pdf_x)
-        mask[i, idx] = 1
-    # 处理中心区域掩码
-    if sample_n:
-        mask[:, Nx//2-sample_n//2:Nx//2+sample_n//2] = 1 #如果指定了 sample_n，则在掩码的中心区域强制设置为 1，确保中心区域被采样。
-    # 扩展掩码到完整形状
-    size = mask.itemsize
-    # 将掩码从 (N, Nx) 扩展到 (N, Nx, Ny)，通过在 Ny 维度上复制数据。
-    mask = as_strided(mask, (N, Nx, Ny), (size * Nx, size, 0))
-    # 将掩码调整为输入 shape 的形状。
-    mask = mask.reshape(shape)
-    # 如果 centred 为 False，则将掩码中心化，使其符合 k空间的默认布局。
-    if not centred:
-        mask = mymath.ifftshift(mask, axes=(-1, -2))
+#     # add uniform distribution
+#     pdf_x += lmda * 1./Nx  #在正态分布的基础上，添加一个均匀分布，确保采样点分布更加均匀。
+#     #处理中心区域 如果指定了 sample_n，则在 k 空间中心区域保留 sample_n 个采样点。
+#     # 将中心区域的 PDF 值设为 0，避免重复采样。
+#     if sample_n:
+#         pdf_x[Nx//2-sample_n//2:Nx//2+sample_n//2] = 0
+#         # 重新归一化 PDF，确保概率总和为 1。
+#         pdf_x /= np.sum(pdf_x)
+#         # 减少需要随机采样的行数 n_lines。
+#         n_lines -= sample_n
+#     # 生成掩码
+#     # 初始化一个形状为 (N, Nx) 的掩码，初始值为 0。
+#     mask = np.zeros((N, Nx))
+#     for i in range(N):
+#         # 根据 PDF 随机选择 n_lines 个采样点，并将掩码中对应位置设为 1。
+#         idx = np.random.choice(Nx, n_lines, False, pdf_x)
+#         mask[i, idx] = 1
+#     # 处理中心区域掩码
+#     if sample_n:
+#         mask[:, Nx//2-sample_n//2:Nx//2+sample_n//2] = 1 #如果指定了 sample_n，则在掩码的中心区域强制设置为 1，确保中心区域被采样。
+#     # 扩展掩码到完整形状
+#     size = mask.itemsize
+#     # 将掩码从 (N, Nx) 扩展到 (N, Nx, Ny)，通过在 Ny 维度上复制数据。
+#     mask = as_strided(mask, (N, Nx, Ny), (size * Nx, size, 0))
+#     # 将掩码调整为输入 shape 的形状。
+#     mask = mask.reshape(shape)
+#     # 如果 centred 为 False，则将掩码中心化，使其符合 k空间的默认布局。
+#     if not centred:
+#         mask = mymath.ifftshift(mask, axes=(-1, -2))
 
-    return mask
+#     return mask
 
 # def undersample(x, mask, centred=False, norm='ortho', noise=0):
 #     '''
@@ -1083,63 +1163,6 @@ centred：是否将掩码中心化（默认不中心化）。
 #     # kspace中心化x_fu
 #     # x_fu= np.fft.fftshift(x_fu)
 #     return x_u, x_fu
-
-
-def undersample(x, mask, centred=False, norm='ortho', noise=0):
-    '''
-    Undersample x. FFT2 will be applied to the last 2 axis
-    Parameters
-    ----------
-    x: array_like
-        data
-    mask: array_like
-        undersampling mask in fourier domain
-
-    norm: 'ortho' or None
-        if 'ortho', performs unitary transform, otherwise normal dft
-    noise_power: float
-        simulates acquisition noise, complex AWG noise.
-        must be percentage of the peak signal
-    Returns
-    -------
-    xu: array_like
-        undersampled image in image domain. Note that it is complex valued
-
-    x_fu: array_like
-        undersampled data in k-space
-    '''
-    # undersample-mask-dtype: float64
-    # undersample-mask-mask: (1, 30, 256, 256)
-    # print('undersample-x-dtype:',x.dtype)
-    # print('undersample-x-shape:',x.shape) #undersample-x-shape: (1, 30, 256, 256)
-    # print('undersample-mask-dtype:',mask.dtype)
-    # print('undersample-mask-mask:',mask.shape)
-    assert x.shape == mask.shape
-    # zero mean complex Gaussian noise
-    noise_power = noise
-    nz = np.sqrt(.5)*(np.random.normal(0, 1, x.shape) + 1j * np.random.normal(0, 1, x.shape))
-    nz = nz * np.sqrt(noise_power)
-
-    if norm == 'ortho':
-        # multiplicative factor
-        nz = nz * np.sqrt(np.prod(mask.shape[-2:]))
-    else:
-        nz = nz * np.prod(mask.shape[-2:])
-    # undersample-nz-dtype: complex128
-    # print('undersample-nz-dtype:',nz.dtype)
-    # print('undersample-nz:',nz)
-    if centred:
-        x_f = mymath.fft2c(x, norm=norm)
-        x_fu = mask * (x_f + nz)
-        x_u = mymath.ifft2c(x_fu, norm=norm)
-        return x_u, x_fu
-    else:
-        x_f = mymath.fft2(x, norm=norm)
-        x_fu = mask * (x_f + nz)
-        x_u = mymath.ifft2(x_fu, norm=norm)
-    # kspace中心化x_fu
-    # x_fu= np.fft.fftshift(x_fu)
-    return x_u, x_fu
 
 
 def get_cine_mask(acc, acs_lines=4, x=18, y=192):
