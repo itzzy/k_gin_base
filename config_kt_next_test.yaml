@@ -11,9 +11,9 @@ general:
   nc: &nc [4]
   only_infer: &only_infer False
   tensorboard_log_dir: 'runs/kt_next_test_tensorboard_log'
-  model_name_run: 'runs/kt_next_test_run_0303_2'
-  model_name_run_test: 'runs/kt_next_test_run_test_0303_2'
-  model_save_dir: 'saved_data/model_kt_next_test_0303_2'
+  model_name_run: 'runs/kt_next_test_run_0303_4'
+  model_name_run_test: 'runs/kt_next_test_run_test_0303_4'
+  model_save_dir: 'saved_data/model_kt_next_test_0303_4'
 
 
 data:
@@ -50,10 +50,10 @@ data:
   only_infer: *only_infer
 
 training:
-  num_epochs: &epochs 50
-  # num_epochs: &epochs 1
-  # warmup_epoch: 0
-  warmup_epoch: 5
+  # num_epochs: &epochs 50
+  num_epochs: &epochs 1
+  warmup_epoch: 0
+  # warmup_epoch: 5
   batch_size: 4
   num_workers: 2
   # num_workers: 2
