@@ -124,9 +124,9 @@ class CINE2DT_vista(torch.utils.data.Dataset):
         C =loadmat(config.mask_root)
         # 从加载的 MATLAB 文件中获取 mask 数据，并将其保存到 self.mask 属性中。
         #  prep_input-mask-shape: (192, 18)
-        self.mask = C['mask'][:].astype(np.int32)
+        # self.mask = C['mask'][:].astype(np.int32)
         # vista的mask
-        # self.mask = C['mask'][:, :, 0].astype(np.int32)  # 显式取第三维的索引
+        self.mask = C['mask'][:, :, 0].astype(np.int32)  # 显式取第三维的索引
         # 对 self.mask 进行转置操作。 vista的mask不用转置[18,192,192]
         # self.mask = np.transpose(self.mask,[1,0])
 

@@ -6,6 +6,7 @@ import glob
 import tqdm
 import time
 from torch.utils.data import DataLoader
+from torch.utils.data import random_split
 from dataset.dataloader import CINE2DT_vista as CINE2DT
 from model.k_interpolator import KInterpolator
 from losses import CriterionKGIN
@@ -18,15 +19,15 @@ import datetime
 # PyTorch建议在使用多线程时设置OMP_NUM_THREADS环境变量，以避免系统过载。
 os.environ['OMP_NUM_THREADS'] = '1'
 # 设置PYTORCH_CUDA_ALLOC_CONF环境变量，以减少CUDA内存碎片
-# os.environ['PYTORCH_CUDA_ALLOC_CONF'] = 'expandable_segments:True'
-# os.environ['PYTORCH_CUDA_ALLOC_CONF'] = 'max_split_size_mb:256'
+os.environ['PYTORCH_CUDA_ALLOC_CONF'] = 'expandable_segments:True'
+os.environ['PYTORCH_CUDA_ALLOC_CONF'] = 'max_split_size_mb:256'
 # os.environ["CUDA_VISIBLE_DEVICES"] = "3" #,0,1,2,4,5,6,7
 # os.environ['CUDA_VISIBLE_DEVICES'] = '1'  # 指定使用 GPU 1 和 GPU 4
 # os.environ['CUDA_VISIBLE_DEVICES'] = '6'  # 指定使用 GPU 1 和 GPU 4
-os.environ['CUDA_VISIBLE_DEVICES'] = '0'  # 指定使用 GPU 1 和 GPU 4
+os.environ['CUDA_VISIBLE_DEVICES'] = '5'  # 指定使用 GPU 1 和 GPU 4
 
-# 设置环境变量 CUDA_VISIBLE_DEVICES  0-5(nvidia--os) 2-6 3-7
-# os.environ['CUDA_VISIBLE_DEVICES'] = '0,1'  # 指定使用 GPU 1 和 GPU 4
+# 设置环境变量 CUDA_VISIBLE_DEVICES  0-1(nvidia--os) 3-6 4-7  5--0  6--2 7--3
+# # os.environ['CUDA_VISIBLE_DEVICES'] = '0,1'  # 指定使用 GPU 1 和 GPU 4
 # os.environ['CUDA_VISIBLE_DEVICES'] = '4,7'  # 指定使用 GPU 7 和 GPU 3
 # os.environ['CUDA_VISIBLE_DEVICES'] = '1,4'  # 指定使用 GPU 4 和 GPU 7
 # os.environ['CUDA_VISIBLE_DEVICES'] = '1,4'  # 指定使用 GPU 4 和 GPU 7
@@ -49,9 +50,15 @@ class TrainerAbstract:
         self.num_epochs = config.training.num_epochs if config.general.only_infer is False else 1
 
         # data
-        # train_ds = CINE2DT(config=config.data, mode='train')
-        train_ds = CINE2DT(config=config.data, mode='val')
+        train_ds = CINE2DT(config=config.data, mode='train')
+        # train_ds = CINE2DT(config=config.data, mode='val')
         test_ds = CINE2DT(config=config.data, mode='val')
+        # 测试数据分位训练集:测试集 = 8:2 计算训练集和测试集的大小
+        # total_size = len(test_ds)
+        # train_size = int(0.8 * total_size)  # 80% 用于训练
+        # test_size = total_size - train_size  # 20% 用于测试
+        # # 使用 random_split 划分数据集
+        # train_ds, test_ds = random_split(test_ds, [train_size, test_size])
         self.train_loader = DataLoader(dataset=train_ds, num_workers=config.training.num_workers, drop_last=False,
                                        pin_memory=True, batch_size=config.training.batch_size, shuffle=True)
         self.test_loader = DataLoader(dataset=test_ds, num_workers=2, drop_last=False, batch_size=1, shuffle=False)
@@ -151,20 +158,20 @@ class TrainerKInterpolator(TrainerAbstract):
             kspace,coilmaps,sampling_mask = kspace.to(device), coilmaps.to(device), sampling_mask.to(device)
             # train_one_epoch-kspace torch.Size([4, 20, 18, 192, 192])
             # 18对应t 20-线圈数 4-batc_size
-            print('train_one_epoch-kspace', kspace.shape)
+            # print('train_one_epoch-kspace', kspace.shape)
             # train_one_epoch-coilmaps torch.Size([4, 20, 1, 192, 192])
-            print('train_one_epoch-coilmaps', coilmaps.shape)
+            # print('train_one_epoch-coilmaps', coilmaps.shape)
             # train_one_epoch-sampling_mask torch.Size([4, 18, 192,192])
-            print('train_one_epoch-sampling_mask', sampling_mask.shape)
+            # print('train_one_epoch-sampling_mask', sampling_mask.shape)
             ref_kspace, ref_img = multicoil2single(kspace, coilmaps)
             # train_one_epoch-ref_kspace torch.Size([4, 18, 192, 192])
-            print('train_one_epoch-ref_kspace', ref_kspace.shape)
+            # print('train_one_epoch-ref_kspace', ref_kspace.shape)
             # train_one_epoch-ref_kspace-dtype: torch.complex64
-            print('train_one_epoch-ref_kspace-dtype:', ref_kspace.dtype)
+            # print('train_one_epoch-ref_kspace-dtype:', ref_kspace.dtype)
             # train_one_epoch-ref_img torch.Size([4, 18, 192, 192])
-            print('train_one_epoch-ref_img', ref_img.shape)
+            # print('train_one_epoch-ref_img', ref_img.shape)
             # train_one_epoch-ref_img-dtype: torch.complex64
-            print('train_one_epoch-ref_img-dtype:', ref_img.dtype)
+            # print('train_one_epoch-ref_img-dtype:', ref_img.dtype)
             # kspace = ref_kspace*torch.unsqueeze(sampling_mask, dim=2) #[1,18,1,192]
             kspace = ref_kspace
             # kspace_real = c2r(kspace)
@@ -257,7 +264,7 @@ class TrainerKInterpolator(TrainerAbstract):
             # np.save('out_kgin_base_0108.npy', out)
             # 尝试保存数组到文件，如果文件已存在则覆盖
             try:
-                np.save('out_kgin_vista_r8_zzy_0222.npy', out)
+                np.save('out_kgin_vista_r8_zzy_0307.npy', out)
             except OSError as e:
                 print(f"An error occurred: {e}")
             self.logger.update_best_eval_results(self.logger.get_metric_value('val/psnr'))

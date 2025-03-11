@@ -8,7 +8,7 @@ general:
   # weights_save_frequency: 30
   acc_rate: &acc_rate [4]
   # acc_rate: 4
-  nc: &nc [5]
+  nc: &nc [4]
   only_infer: &only_infer False
   tensorboard_log_dir: 'runs/kt_next_test_tensorboard_log'
   model_name_run: 'runs/kt_next_test_run_0303_1'

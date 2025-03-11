@@ -62,6 +62,8 @@ out.npy
 out_*
 output_kv_*
 output*
+*.log
+log_*
 # masks/
 models/
 cineJENSE/
