@@ -6,6 +6,7 @@ import glob
 import tqdm
 import time
 from torch.utils.data import DataLoader
+from torch.utils.data import random_split
 from dataset.dataloader import CINE2DT_vista as CINE2DT
 from model.k_interpolator import KInterpolator
 from losses import CriterionKGIN
@@ -32,7 +33,7 @@ os.environ['CUDA_VISIBLE_DEVICES'] = '3'  # 指定使用 GPU 1 和 GPU 4
 # os.environ['CUDA_VISIBLE_DEVICES'] = '1,4'  # 指定使用 GPU 4 和 GPU 7
 # os.environ['CUDA_VISIBLE_DEVICES'] = '1,3'  # 指定使用 GPU 4 和 GPU 6
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-# nohup python train_kgin_base_vista_r8.py --config config_kgin_base_vista_r8.yaml > log_0216_test.txt 2>&1 &
+# nohup python train_kgin_base_vista_r8_test.py --config config_kgin_base_vista_r8_test.yaml > log_0216_test.txt 2>&1 &
 
 class TrainerAbstract:
     def __init__(self, config):
@@ -50,8 +51,14 @@ class TrainerAbstract:
 
         # data
         # train_ds = CINE2DT(config=config.data, mode='train')
-        train_ds = CINE2DT(config=config.data, mode='val')
+        # train_ds = CINE2DT(config=config.data, mode='val')
         test_ds = CINE2DT(config=config.data, mode='val')
+        # 测试数据分位训练集:测试集 = 8:2 计算训练集和测试集的大小
+        total_size = len(test_ds)
+        train_size = int(0.8 * total_size)  # 80% 用于训练
+        test_size = total_size - train_size  # 20% 用于测试
+        # 使用 random_split 划分数据集
+        train_ds, test_ds = random_split(test_ds, [train_size, test_size])
         self.train_loader = DataLoader(dataset=train_ds, num_workers=config.training.num_workers, drop_last=False,
                                        pin_memory=True, batch_size=config.training.batch_size, shuffle=True)
         self.test_loader = DataLoader(dataset=test_ds, num_workers=2, drop_last=False, batch_size=1, shuffle=False)
@@ -151,20 +158,20 @@ class TrainerKInterpolator(TrainerAbstract):
             kspace,coilmaps,sampling_mask = kspace.to(device), coilmaps.to(device), sampling_mask.to(device)
             # train_one_epoch-kspace torch.Size([4, 20, 18, 192, 192])
             # 18对应t 20-线圈数 4-batc_size
-            print('train_one_epoch-kspace', kspace.shape)
+            # print('train_one_epoch-kspace', kspace.shape)
             # train_one_epoch-coilmaps torch.Size([4, 20, 1, 192, 192])
-            print('train_one_epoch-coilmaps', coilmaps.shape)
+            # print('train_one_epoch-coilmaps', coilmaps.shape)
             # train_one_epoch-sampling_mask torch.Size([4, 18, 192,192])
-            print('train_one_epoch-sampling_mask', sampling_mask.shape)
+            # print('train_one_epoch-sampling_mask', sampling_mask.shape)
             ref_kspace, ref_img = multicoil2single(kspace, coilmaps)
             # train_one_epoch-ref_kspace torch.Size([4, 18, 192, 192])
-            print('train_one_epoch-ref_kspace', ref_kspace.shape)
+            # print('train_one_epoch-ref_kspace', ref_kspace.shape)
             # train_one_epoch-ref_kspace-dtype: torch.complex64
-            print('train_one_epoch-ref_kspace-dtype:', ref_kspace.dtype)
+            # print('train_one_epoch-ref_kspace-dtype:', ref_kspace.dtype)
             # train_one_epoch-ref_img torch.Size([4, 18, 192, 192])
-            print('train_one_epoch-ref_img', ref_img.shape)
+            # print('train_one_epoch-ref_img', ref_img.shape)
             # train_one_epoch-ref_img-dtype: torch.complex64
-            print('train_one_epoch-ref_img-dtype:', ref_img.dtype)
+            # print('train_one_epoch-ref_img-dtype:', ref_img.dtype)
             # kspace = ref_kspace*torch.unsqueeze(sampling_mask, dim=2) #[1,18,1,192]
             kspace = ref_kspace
             # kspace_real = c2r(kspace)

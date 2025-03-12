@@ -4,7 +4,7 @@ import yaml
 import torch
 import os
 from utils import wandb_setup, dict2obj
-from trainer_kgin_base_vista_r8 import TrainerKInterpolator
+from trainer_kgin_base_vista_r8_test import TrainerKInterpolator
 
 
 parser = argparse.ArgumentParser()
