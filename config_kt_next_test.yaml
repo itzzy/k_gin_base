@@ -11,9 +11,9 @@ general:
   nc: &nc [4]
   only_infer: &only_infer False
   tensorboard_log_dir: 'runs/kt_next_test_tensorboard_log'
-  model_name_run: 'runs/kt_next_test_run_0303_4'
-  model_name_run_test: 'runs/kt_next_test_run_test_0303_4'
-  model_save_dir: 'saved_data/model_kt_next_test_0303_4'
+  model_name_run: 'runs/kt_next_test_run_0305_4'
+  model_name_run_test: 'runs/kt_next_test_run_test_0305_4'
+  model_save_dir: 'saved_data/model_kt_next_test_0305_4'
 
 
 data:

@@ -30,11 +30,11 @@ python train_kgin_base_vista_r4.py --config config_kgin_base_vista_r4.yaml
 # out_kgin_vista_r4_0222.npy
 # test_kgin_vista_r4
 # /data0/zhiyong/data/data222/base/r4
-#scp experiments/test_kgin_vista_r4/model_281.pth  experiments/test_kgin_vista_r4/model_300.pth out_kgin_vista_r4_0222.npy zhiyongzhang@172.20.35.37:/data0/zhiyong/data/data222/base/r4
-#scp experiments/test_kgin_vista_r6/model_281.pth  experiments/test_kgin_vista_r6/model_300.pth out_kgin_vista_r6_0222.npy zhiyongzhang@172.20.35.37:/data0/zhiyong/data/data222/base/r6
+scp experiments/test_kgin_vista_r4/model_281.pth  experiments/test_kgin_vista_r4/model_300.pth out_kgin_vista_r4_0222.npy zhiyongzhang@172.20.35.37:/data0/zhiyong/data/data222/base/r4
+scp experiments/test_kgin_vista_r6/model_281.pth  experiments/test_kgin_vista_r6/model_300.pth out_kgin_vista_r6_0222.npy zhiyongzhang@172.20.35.37:/data0/zhiyong/data/data222/base/r6
 
 # out_kgin_kv_vista_r4_0222.npy
 # test_kgin_kv_vista_r4
 # /data0/zhiyong/data/data222/kv/r4
-#scp experiments/test_kgin_kv_vista_r4/model_281.pth  experiments/test_kgin_kv_vista_r4/model_300.pth out_kgin_kv_vista_r4_0222.npy zhiyongzhang@172.20.35.37:/data0/zhiyong/data/data222/kv/r4
-#scp experiments/test_kgin_kv_vista_r6/model_281.pth  experiments/test_kgin_kv_vista_r6/model_300.pth out_kgin_kv_vista_r6_0222.npy zhiyongzhang@172.20.35.37:/data0/zhiyong/data/data222/kv/r6
+scp experiments/test_kgin_kv_vista_r4/model_281.pth  experiments/test_kgin_kv_vista_r4/model_300.pth out_kgin_kv_vista_r4_0222.npy zhiyongzhang@172.20.35.37:/data0/zhiyong/data/data222/kv/r4
+scp experiments/test_kgin_kv_vista_r6/model_281.pth  experiments/test_kgin_kv_vista_r6/model_300.pth out_kgin_kv_vista_r6_0222.npy zhiyongzhang@172.20.35.37:/data0/zhiyong/data/data222/kv/r6

@@ -218,16 +218,17 @@ class TrainerKInterpolator(TrainerAbstract):
             # img_shift = torch.fft.ifft2(kspace_shift,dim=(-2,-1))
             # if img_shift.is_cuda:
             #     img_shift = img_shift.cpu()
-            kspacek_np = kspace.detach().cpu().numpy()
-            kspacek_np_shift = np.fft.fftshift(kspacek_np,axes=(-2,-1))
-            img_shift = np.fft.ifft2(kspacek_np_shift,axes=(-2,-1))
+            # kspacek_np = kspace.detach().cpu().numpy()
+            # # kspacek_np_shift = np.fft.fftshift(kspacek_np,axes=(-2,-1))
+            # kspacek_np_shift = np.fft.ifftshift(kspacek_np,axes=(-2,-1))
+            # img_shift = np.fft.ifft2(kspacek_np_shift,axes=(-2,-1))
             # if img_shift.is_cuda:
             #     img_shift = img_shift.cpu()
                 
             # ref_img_real = c2r(ref_img)
             # print('train_one_epoch-ref_img_real', ref_img_real.shape)
-            # if ref_img.is_cuda:  # 判断张量是否在GPU上
-            #     ref_img = ref_img.cpu()  # 如果在GPU上，将其复制到CPU上
+            if ref_img.is_cuda:  # 判断张量是否在GPU上
+                ref_img = ref_img.cpu()  # 如果在GPU上，将其复制到CPU上
             
             # train_one_epoch-kspace_real-dtype: torch.float32
             # print('train_one_epoch-ref_img_real-dtype:', ref_img_real.dtype)
@@ -240,8 +241,8 @@ class TrainerKInterpolator(TrainerAbstract):
             # 数据加载和预处理
             try:
                 # ref_kspace, ref_img = multicoil2single(kspace, coilmaps)
-                # im_undersample, k_undersample, mask, im_groudtruth, xf_gnd = prep_input(ref_img, self.acc_rate_value)
-                im_undersample, k_undersample, mask, im_groudtruth, xf_gnd = prep_input(img_shift, self.acc_rate_value)
+                im_undersample, k_undersample, mask, im_groudtruth, xf_gnd = prep_input(ref_img, self.acc_rate_value)
+                # im_undersample, k_undersample, mask, im_groudtruth, xf_gnd = prep_input(img_shift, self.acc_rate_value)
             except Exception as e:
                 print(f"Error in data preparation: {e}")
                 continue  # 跳过当前batch
@@ -388,15 +389,16 @@ class TrainerKInterpolator(TrainerAbstract):
                 # if img_shift.is_cuda:
                 #     img_shift = img_shift.cpu()
                 
-                kspacek_np = kspace.detach().cpu().numpy()
-                kspacek_np_shift = np.fft.fftshift(kspacek_np,axes=(-2,-1))
-                img_shift = np.fft.ifft2(kspacek_np_shift,axes=(-2,-1))
+                # kspacek_np = kspace.detach().cpu().numpy()
+                # # kspacek_np_shift = np.fft.fftshift(kspacek_np,axes=(-2,-1))
+                # kspacek_np_shift = np.fft.ifftshift(kspacek_np,axes=(-2,-1))
+                # img_shift = np.fft.ifft2(kspacek_np_shift,axes=(-2,-1))
                 # if img_shift.is_cuda:
                 #     img_shift = img_shift.cpu()
                 
                 # 如果图像在 GPU 上，将其转换到 CPU
-                # if ref_img.is_cuda:
-                #     ref_img = ref_img.cpu()
+                if ref_img.is_cuda:
+                    ref_img = ref_img.cpu()
 
                 # 准备输入数据
                 # im_und, k_und, mask, im_gnd = prep_input(ref_img, self.acc_rate_value)
@@ -406,8 +408,8 @@ class TrainerKInterpolator(TrainerAbstract):
                 # mask = Variable(mask.type(Tensor))
                 # gnd = Variable(im_gnd.type(Tensor))
                 
-                # im_undersample, k_undersample, mask, im_groudtruth, xf_gnd = prep_input(ref_img, self.acc_rate_value)
-                im_undersample, k_undersample, mask, im_groudtruth, xf_gnd = prep_input(img_shift, self.acc_rate_value)
+                im_undersample, k_undersample, mask, im_groudtruth, xf_gnd = prep_input(ref_img, self.acc_rate_value)
+                # im_undersample, k_undersample, mask, im_groudtruth, xf_gnd = prep_input(img_shift, self.acc_rate_value)
             
                 im_undersample = Variable(im_undersample.type(Tensor))
                 k_undersample = Variable(k_undersample.type(Tensor))
@@ -656,7 +658,7 @@ def normalize_and_adjust_brightness(image, brightness_factor=3):
 #     print(f"Saved im_undersample, k_undersample, mask, and groudtruth to {train_output_dir}")
 
 def save_last_batch_data(im_undersample,k_undersample,mask,im_groudtruth,save_dir):
-     # train_one_epoch-im_undersample torch.Size([2, 2, 192, 192, 18])
+    # train_one_epoch-im_undersample torch.Size([2, 2, 192, 192, 18])
     # train_one_epoch-k_undersample torch.Size([2, 2, 192, 192, 18])
     # train_one_epoch-mask torch.Size([2, 2, 192, 192, 18])
     # train_one_epoch-im_groudtruth torch.Size([2, 2, 192, 192, 18])

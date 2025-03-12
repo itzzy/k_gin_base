@@ -129,6 +129,8 @@ class CINE2DT_vista(torch.utils.data.Dataset):
         self.mask = C['mask'][:, :, 0].astype(np.int32)  # 显式取第三维的索引
         # 对 self.mask 进行转置操作。 vista的mask不用转置[18,192,192]
         # self.mask = np.transpose(self.mask,[1,0])
+        self.mask = np.fft.fftshift(self.mask, axes=(1, 2))
+        # print('')
 
     def __getitem__(self, index):
         # 获取第 index 个样本的 k-space 数据。
