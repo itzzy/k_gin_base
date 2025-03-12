@@ -27,8 +27,7 @@ kspace = fft2c(img): 将图像转换回k空间。fft2c 很可能是二维快速�
 这行代码的核心是调用了一个名为 MulticoilAdjointOp 的函数或类，它执行多通道磁共振图像(MRI)重建。让我们逐部分解读：
 
 - MulticoilAdjointOp(center=True, coil_axis=-4, channel_dim_defined=False)**:**  这部分创建了一个 MulticoilAdjointOp 对象，并设置了三个参数：
-
-    * center=True:  这表示重建过程中会进行中心化处理。在 MRI 数据处理中，中心化通常指将k 空间数据或图像数据移到其中心位置，
+    * center=True:  这表示重建过程中会进行中心化处理。在 MRI 数据处理中，中心化通常指将k空间数据或图像数据移到其中心位置，
     这有助于减少重建伪影。
 
     * coil_axis=-4:  这指定了线圈维度的索引。  -4 表示线圈维度是张量的倒数第四个维度。 
@@ -69,6 +68,7 @@ MulticoilAdjointOp 很可能是一个基于某种算法（例如，最小二乘�
 
 def multicoil2single(kspace, coilmaps):
     img = MulticoilAdjointOp(center=True, coil_axis=-4, channel_dim_defined=False)(kspace, torch.ones_like(kspace), coilmaps)
+    # img = MulticoilAdjointOp(center=False, coil_axis=-4, channel_dim_defined=False)(kspace, torch.ones_like(kspace), coilmaps)
     img /= img.abs().max()
     kspace = fft2c(img)
     return kspace, img
