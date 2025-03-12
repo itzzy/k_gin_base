@@ -1,5 +1,6 @@
 general:
-  exp_name: test_kgin_vista_r8_zzy
+  exp_name: test_kgin_shear_grid_r8_zzy
+  # exp_name: test_kgin_vista_r8_zzy
   gpus: 3
   wandb_entity: 'itzzy'
   debug: False
@@ -36,7 +37,7 @@ data:
   # mask_root: 'masks/VISTA/samp_VISTA_192x18_R8.mat' 
   # mask_root: 'masks/VISTA/vista_18_192_192_acc_8.mat'
   # github/itzzy_git/k_gin_base/masks/VISTA/shear_grid_18_192_192_sample_n_4_acc_4.mat
-  mask_root: 'masks/VISTA/shear_grid_18_192_192_sample_n_4_acc_4.mat'
+  mask_root: 'masks/VISTA/shear_grid_18_192_192_sample_n_4_acc_8.mat'
   # data_root: '/nfs/zzy/data/k_gin_data'
   data_root: '/data0/chentao/data/LplusSNet/data/20coil'
   # data_root: '/public/home/macong/zzy/data'
@@ -47,16 +48,18 @@ data:
   only_infer: *only_infer
 
 training:
-  # num_epochs: &epochs 300
-  num_epochs: &epochs 1
-  warmup_epoch: 0
-  # warmup_epoch: 30
+  num_epochs: &epochs 300
+  # num_epochs: &epochs 1
+  # warmup_epoch: 0
+  warmup_epoch: 30
   batch_size: 2
   # num_workers: 4
   num_workers: 2
   # num_workers: 1
   # restore_ckpt: '/nfs/zzy/code/k_gin_base/experiments/test_kgin_vista_r8'
-  restore_ckpt: '/data0/zhiyong/code/github/itzzy_git/k_gin_base/experiments/test_kgin_vista_r8_zzy'
+  # restore_ckpt: '/data0/zhiyong/code/github/itzzy_git/k_gin_base/experiments/test_kgin_vista_r8_zzy'
+  restore_ckpt: '/data0/zhiyong/code/github/itzzy_git/k_gin_base/experiments/test_kgin_shear_grid_r8_zzy'
+  #test_kgin_shear_grid_r8_zzy
   # restore_ckpt: '/public/home/macong/zzy/data/code/k_gin_base/experiments/test_kgin_vista_r8'
   restore_training: False
   # restore_training: True
