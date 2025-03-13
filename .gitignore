@@ -72,6 +72,13 @@ log/
 tmp/
 saved_data/
 dataset/dataloader.py.0618
+utils/base
+utils/r4
+utils/r6
+utils/r8
+utils/testzerofilling
+utils/testzerofilling_bak
+# /data0/zhiyong/code/github/itzzy_git/k_gin_base/utils/testzerofilling
 
 # Django stuff:
 *.log
