@@ -80,6 +80,7 @@ utils/testzerofilling
 utils/testzerofilling_bak
 # /data0/zhiyong/code/github/itzzy_git/k_gin_base/utils/testzerofilling
 # masks/VISTA/shear_grid_18_192_192_sample_n_4_acc_8.mat
+masks/VISTA/vista_18_192_192_acc_8.mat
 
 # Django stuff:
 *.log

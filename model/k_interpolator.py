@@ -137,7 +137,7 @@ class KInterpolator(nn.Module):
             nn.init.constant_(m.weight, 1.0)
 
     def encoder(self, kspace, mask):
-        # print('encoder-kspace, mask', kspace.shape, mask.shape)
+        # print('encoder-kspace, mask', kspace.shape, mask.shape) #torch.Size([4, 384, 18, 192]) torch.Size([4, 3456])
         b, c, h, w = kspace.shape
         kspace = self.patch_embed(kspace)
 
