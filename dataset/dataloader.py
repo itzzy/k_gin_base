@@ -151,7 +151,7 @@ class CINE2DT_vista(torch.utils.data.Dataset):
 
         # 调整 sampling_mask 的维度
         # 原始 sampling_mask 的形状是 (18, 192)
-       # 原始 sampling_mask 的形状是 (18, 192)
+        # 原始 sampling_mask 的形状是 (18, 192)
         # sampling_mask = np.expand_dims(sampling_mask, axis=1)  # 从 (18, 192) 调整为 (18, 1, 192)
         # sampling_mask = np.expand_dims(sampling_mask, axis=-1)  # 从 (18, 1, 192) 调整为 (18, 1, 192, 1)
         # sampling_mask = np.tile(sampling_mask, (1, 20, 1, 192))  # 复制到每个通道和空间维度，调整为 (18, 20, 192, 192)
@@ -217,7 +217,7 @@ class CINE2DT(torch.utils.data.Dataset):
 
         # 调整 sampling_mask 的维度
         # 原始 sampling_mask 的形状是 (18, 192)
-       # 原始 sampling_mask 的形状是 (18, 192)
+        # 原始 sampling_mask 的形状是 (18, 192)
         # sampling_mask = np.expand_dims(sampling_mask, axis=1)  # 从 (18, 192) 调整为 (18, 1, 192)
         # sampling_mask = np.expand_dims(sampling_mask, axis=-1)  # 从 (18, 1, 192) 调整为 (18, 1, 192, 1)
         # sampling_mask = np.tile(sampling_mask, (1, 20, 1, 192))  # 复制到每个通道和空间维度，调整为 (18, 20, 192, 192)
