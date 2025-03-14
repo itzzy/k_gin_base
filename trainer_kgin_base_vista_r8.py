@@ -231,6 +231,7 @@ class TrainerKInterpolator(TrainerAbstract):
         # torch.Size([118, 18, 192, 192]) torch.complex64
         # print('run_test-ooutt-shape:',out.shape, out.dtype)
         self.network.eval()
+        psnr_values = []  # 新增：用于收集所有PSNR值的列表
         with torch.no_grad():
             for i, (kspace, coilmaps, sampling_mask) in enumerate(self.test_loader):
                 kspace,coilmaps,sampling_mask = kspace.to(device), coilmaps.to(device), sampling_mask.to(device)
@@ -253,10 +254,20 @@ class TrainerKInterpolator(TrainerAbstract):
                 out[i] = kspace_complex
 
                 ls = self.eval_criterion([kspace_complex], ref_kspace, im_recon, ref_img, kspace_mask=sampling_mask, mode='test')
-
+                # 收集每个样本的PSNR值
+                psnr_values.append(ls['psnr'].item())  # 修改：记录原始PSNR值
+                
                 self.logger.update_metric_item('val/k_recon_loss', ls['k_recon_loss'].item()/len(self.test_loader))
                 self.logger.update_metric_item('val/recon_loss', ls['photometric'].item()/len(self.test_loader))
                 self.logger.update_metric_item('val/psnr', ls['psnr'].item()/len(self.test_loader))
+            
+            # 计算统计量
+            psnr_mean = np.mean(psnr_values)
+            psnr_var = np.var(psnr_values)
+            
+            # 打印结果
+            print(f'\nkgin_base_vista_r8:Validation PSNR - Mean: {psnr_mean:.4f} ± {np.sqrt(psnr_var):.4f} | Variance: {psnr_var:.4f}')
+
             print('...', out.shape, out.dtype)
             out = out.cpu().data.numpy()
             # np.save('out.npy', out)

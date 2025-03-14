@@ -48,7 +48,7 @@ data:
 
 training:
   # num_epochs: &epochs 300
-  num_epochs: &epochs 1
+  num_epochs: &epochs 2
   warmup_epoch: 0
   # warmup_epoch: 30
   batch_size: 4
