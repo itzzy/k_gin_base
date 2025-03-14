@@ -24,7 +24,7 @@ os.environ['PYTORCH_CUDA_ALLOC_CONF'] = 'max_split_size_mb:256'
 # os.environ["CUDA_VISIBLE_DEVICES"] = "3" #,0,1,2,4,5,6,7
 # os.environ['CUDA_VISIBLE_DEVICES'] = '1'  # 指定使用 GPU 1 和 GPU 4
 # os.environ['CUDA_VISIBLE_DEVICES'] = '6'  # 指定使用 GPU 1 和 GPU 4
-os.environ['CUDA_VISIBLE_DEVICES'] = '7'  # 指定使用 GPU 1 和 GPU 4
+os.environ['CUDA_VISIBLE_DEVICES'] = '6'  # 指定使用 GPU 1 和 GPU 4
 
 # 设置环境变量 CUDA_VISIBLE_DEVICES  0-1(nvidia--os) 3-6 4-7  5--0  6--2 7--3
 # # os.environ['CUDA_VISIBLE_DEVICES'] = '0,1'  # 指定使用 GPU 1 和 GPU 4
@@ -33,7 +33,7 @@ os.environ['CUDA_VISIBLE_DEVICES'] = '7'  # 指定使用 GPU 1 和 GPU 4
 # os.environ['CUDA_VISIBLE_DEVICES'] = '1,4'  # 指定使用 GPU 4 和 GPU 7
 # os.environ['CUDA_VISIBLE_DEVICES'] = '1,3'  # 指定使用 GPU 4 和 GPU 6
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-# nohup python train_kgin_base_vista_r8_zzy.py --config config_kgin_base_vista_r8_zzy.yaml > log_0216_test.txt 2>&1 &
+# nohup python train_kgin_base_vista_r8_zzy.py --config config_kgin_base_vista_r8_zzy.yaml > log_kgin_base_vista_r8_0314.txt 2>&1 &
 
 class TrainerAbstract:
     def __init__(self, config):
@@ -52,15 +52,15 @@ class TrainerAbstract:
         self.num_epochs = config.training.num_epochs if config.general.only_infer is False else 1
 
         # data
-        # train_ds = CINE2DT(config=config.data, mode='train')
+        train_ds = CINE2DT(config=config.data, mode='train')
         # train_ds = CINE2DT(config=config.data, mode='val')
         test_ds = CINE2DT(config=config.data, mode='val')
         # 测试数据分位训练集:测试集 = 8:2 计算训练集和测试集的大小
-        total_size = len(test_ds)
-        train_size = int(0.8 * total_size)  # 80% 用于训练
-        test_size = total_size - train_size  # 20% 用于测试
-        # 使用 random_split 划分数据集
-        train_ds, test_ds = random_split(test_ds, [train_size, test_size])
+        # total_size = len(test_ds)
+        # train_size = int(0.8 * total_size)  # 80% 用于训练
+        # test_size = total_size - train_size  # 20% 用于测试
+        # # 使用 random_split 划分数据集
+        # train_ds, test_ds = random_split(test_ds, [train_size, test_size])
         self.train_loader = DataLoader(dataset=train_ds, num_workers=config.training.num_workers, drop_last=False,
                                     pin_memory=True, batch_size=config.training.batch_size, shuffle=True)
         self.test_loader = DataLoader(dataset=test_ds, num_workers=2, drop_last=False, batch_size=1, shuffle=False)
@@ -216,7 +216,8 @@ class TrainerKInterpolator(TrainerAbstract):
             #     f"time: {elapsed_time / (i + 1):.4f} data: 0.0002 max mem: {max_memory:.0f}"
             # )
             # Log the detailed information
-            if i % 20 ==0:
+            # if i % 20 ==0:
+            if i % 50 ==0:
                 print(
                     f"Epoch: [{epoch}] [{i + 1}/{len(self.train_loader)}] eta: {str(eta)} "
                     f"lr: {current_lr:.6f} loss: {loss_reduced.item():.4f} ({running_loss / (i + 1):.4f}) "
@@ -232,6 +233,7 @@ class TrainerKInterpolator(TrainerAbstract):
         # torch.Size([118, 18, 192, 192]) torch.complex64
         # print('run_test-ooutt-shape:',out.shape, out.dtype)
         self.network.eval()
+        psnr_values = []  # 新增：用于收集所有PSNR值的列表
         with torch.no_grad():
             for i, (kspace, coilmaps, sampling_mask) in enumerate(self.test_loader):
                 kspace,coilmaps,sampling_mask = kspace.to(device), coilmaps.to(device), sampling_mask.to(device)
@@ -254,10 +256,18 @@ class TrainerKInterpolator(TrainerAbstract):
                 out[i] = kspace_complex
 
                 ls = self.eval_criterion([kspace_complex], ref_kspace, im_recon, ref_img, kspace_mask=sampling_mask, mode='test')
-
+                # 收集每个样本的PSNR值
+                psnr_values.append(ls['psnr'].item())  # 修改：记录原始PSNR值
+            
                 self.logger.update_metric_item('val/k_recon_loss', ls['k_recon_loss'].item()/len(self.test_loader))
                 self.logger.update_metric_item('val/recon_loss', ls['photometric'].item()/len(self.test_loader))
                 self.logger.update_metric_item('val/psnr', ls['psnr'].item()/len(self.test_loader))
+            # 计算统计量 均值和方差
+            psnr_mean = np.mean(psnr_values)
+            psnr_var = np.var(psnr_values)
+            # 打印结果
+            print(f'\nkgin_base_vista_r8Validation PSNR - Mean: {psnr_mean:.4f} ± {np.sqrt(psnr_var):.4f} | Variance: {psnr_var:.4f}')
+
             print('...', out.shape, out.dtype)
             out = out.cpu().data.numpy()
             # np.save('out.npy', out)
@@ -266,7 +276,7 @@ class TrainerKInterpolator(TrainerAbstract):
             # np.save('out_kgin_base_0108.npy', out)
             # 尝试保存数组到文件，如果文件已存在则覆盖 test_kgin_vista_r8_zzy
             try:
-                np.save('out_kgin_vista_r8_zzy_0314.npy', out)
+                np.save('out_kgin_base_vista_r8_zzy_0314.npy', out)
             except OSError as e:
                 print(f"An error occurred: {e}")
             self.logger.update_best_eval_results(self.logger.get_metric_value('val/psnr'))

@@ -48,10 +48,10 @@ data:
   only_infer: *only_infer
 
 training:
-  # num_epochs: &epochs 300
-  num_epochs: &epochs 1
-  warmup_epoch: 0
-  # warmup_epoch: 30
+  num_epochs: &epochs 300
+  # num_epochs: &epochs 1
+  # warmup_epoch: 0
+  warmup_epoch: 30
   batch_size: 2
   # num_workers: 4
   num_workers: 2
