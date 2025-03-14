@@ -257,16 +257,16 @@ class KInterpolator(nn.Module):
     def forward(self, img, mask):
         # size of input img and mask: [B, T, H, W]
         # k, m torch.Size([1, 18, 192, 192]) torch.Size([1, 18, 192])
-        
-        # kspace, mask torch.Size([2, 18, 192, 192]) torch.Size([2, 18, 192, 192])
-        # print('kspace, mask', img.shape, mask.shape)
+        #kspace, mask torch.Size([4, 18, 192, 192]) torch.Size([4, 18, 192])
+        # print('kspace, mask', img.shape, mask.shape) #vista mask: kspace, mask torch.Size([4, 18, 192, 192]) torch.Size([4, 18, 192, 192])
         img_orig = torch.view_as_real(img)
         #vista mask使用下面的代码 mask维度[18,192,192]
         # mask_orig = mask[..., None].expand_as(img_orig)  # 将掩码扩展到与图像相同的维度
+        # print('mask_orig:',mask_orig.shape)
         # 随机mask使用下面的代码 mask维度[18,192]
         mask_orig = mask[..., None, None].expand_as(img_orig)  # 将掩码扩展到与图像相同的维度
         # mask_orig: torch.Size([2, 18, 192, 192, 2])
-        # print('mask_orig:',mask_orig.shape)
+        # print('mask_orig-shape:',mask_orig.shape)
         img = torch.view_as_real(torch.einsum('bthw->btwh', img)).flatten(-2)
         img = torch.einsum('bhwt->bthw', img)
         b, h_2, t, w = img.shape
@@ -277,11 +277,13 @@ class KInterpolator(nn.Module):
         对于mask2，维度是[2, 18, 192, 192]。展平第1维到最后一维，即展平18、192和192，结果将是[2, 18*192*192]。
         '''
         mask = mask.flatten(1, -1) #随机mask使用此代码
-        # 
+        # mask-flatten-shape: torch.Size([1, 3456])
+        # print('mask-flatten-shape:',mask.shape)
+        #vista mask使用下面的代码 mask维度[18,192,192]
         # mask = mask.flatten(1,2)
         
         # mask-flatten-shape: torch.Size([2, 663552])
-        # print('mask-flatten-shape:',mask.shape)
+        # print('mask-flatten-shape:',mask.shape) #vista mask-flatten-shape: torch.Size([4, 3456, 192])
 
         latent, ids_restore = self.encoder(img, mask)
         # forward-latent: torch.Size([1, 631, 512])

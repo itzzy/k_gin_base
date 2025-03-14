@@ -128,6 +128,7 @@ class CINE2DT_vista(torch.utils.data.Dataset):
         # vista的mask
         self.mask = C['mask'][:, :, 0].astype(np.int32)  # 显式取第三维的索引
         # 对 self.mask 进行转置操作。 vista的mask不用转置[18,192,192]
+        # self.mask = C['mask'][:].astype(np.int32)
         # self.mask = np.transpose(self.mask,[1,0])
         # self.mask = np.fft.fftshift(self.mask, axes=(1, 2))
         # print('')

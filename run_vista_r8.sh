@@ -20,7 +20,7 @@ which python3
 which nvcc
 nvidia-smi
 
-export CUDA_VISIBLE_DEVICES=0
+# export CUDA_VISIBLE_DEVICES=0
 
 wandb offline
 

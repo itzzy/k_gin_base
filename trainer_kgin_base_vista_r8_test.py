@@ -41,7 +41,7 @@ class TrainerAbstract:
         super().__init__()
         self.config = config.general
         self.debug = config.general.debug
-        if self.debug: config.general.exp_name = 'test_kgin_vista_r8'
+        if self.debug: config.general.exp_name = 'test_kgin_vista_r8_test'
         self.experiment_dir = os.path.join(config.general.exp_save_root, config.general.exp_name)
         pathlib.Path(self.experiment_dir).mkdir(parents=True, exist_ok=True)
 
@@ -264,7 +264,7 @@ class TrainerKInterpolator(TrainerAbstract):
             # np.save('out_kgin_base_0108.npy', out)
             # 尝试保存数组到文件，如果文件已存在则覆盖
             try:
-                np.save('out_kgin_vista_r8_0218.npy', out)
+                np.save('out_kgin_vista_r8_test_0313.npy', out)
             except OSError as e:
                 print(f"An error occurred: {e}")
             self.logger.update_best_eval_results(self.logger.get_metric_value('val/psnr'))

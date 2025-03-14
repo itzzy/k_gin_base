@@ -1,5 +1,5 @@
 general:
-  exp_name: test_kgin_vista_r8
+  exp_name: test_kgin_vista_r8_test
   gpus: 3
   wandb_entity: 'itzzy'
   debug: False
@@ -35,8 +35,8 @@ data:
   #wandb地址: https://wandb.ai/itzzy/KInterpolator/runs/07ywsx9m?nw=nwuser549926988
   # mask_root: 'masks/VISTA/samp_VISTA_192x18_R8.mat' 
   #code/k_gin_base/masks/VISTA/shear_grid_18_192_192_sample_n_4_acc_8.mat
-  # mask_root: 'masks/VISTA/vista_18_192_192_acc_8.mat'
-  mask_root: 'masks/VISTA/shear_grid_18_192_192_sample_n_4_acc_8.mat'
+  mask_root: 'masks/VISTA/vista_18_192_192_acc_8.mat'
+  # mask_root: 'masks/VISTA/shear_grid_18_192_192_sample_n_4_acc_8.mat'
   data_root: '/nfs/zzy/data/k_gin_data'
   # data_root: '/data0/chentao/data/LplusSNet/data/20coil'
   # data_root: '/public/home/macong/zzy/data'
@@ -55,7 +55,7 @@ training:
   # num_workers: 4
   num_workers: 2
   # num_workers: 1
-  restore_ckpt: '/nfs/zzy/code/k_gin_base/experiments/test_kgin_vista_r8'
+  restore_ckpt: '/nfs/zzy/code/k_gin_base/experiments/test_kgin_vista_r8_test'
   # restore_ckpt: '/data0/zhiyong/code/github/itzzy_git/k_gin_base/experiments/test_k_gin'
   # restore_ckpt: '/public/home/macong/zzy/data/code/k_gin_base/experiments/test_kgin_vista_r8'
   restore_training: False
