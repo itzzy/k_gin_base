@@ -250,7 +250,7 @@ class TrainerKInterpolator(TrainerAbstract):
             psnr_mean = np.mean(psnr_values)
             psnr_var = np.var(psnr_values)
             # 打印结果
-            print(f'\nkgin_base_vista_r12 Validation PSNR - Mean: {psnr_mean:.4f} ± {np.sqrt(psnr_var):.4f} | Variance: {psnr_var:.4f}')
+            print(f'\nkgin_base_r12 Validation PSNR - Mean: {psnr_mean:.4f} ± {np.sqrt(psnr_var):.4f} | Variance: {psnr_var:.4f}')
             
             print('...', out.shape, out.dtype)
             out = out.cpu().data.numpy()
