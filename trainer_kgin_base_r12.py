@@ -53,7 +53,7 @@ class TrainerAbstract:
         # train_ds = CINE2DT(config=config.data, mode='val')
         test_ds = CINE2DT(config=config.data, mode='val')
         self.train_loader = DataLoader(dataset=train_ds, num_workers=config.training.num_workers, drop_last=False,
-                                       pin_memory=True, batch_size=config.training.batch_size, shuffle=True)
+                                    pin_memory=True, batch_size=config.training.batch_size, shuffle=True)
         self.test_loader = DataLoader(dataset=test_ds, num_workers=2, drop_last=False, batch_size=1, shuffle=False)
 
         # network
@@ -190,7 +190,7 @@ class TrainerKInterpolator(TrainerAbstract):
 
                 self.loss_scaler(ls['k_recon_loss_combined'], self.optimizer, parameters=self.network.parameters())
 
-             # 使用 reduce 将每个进程的损失值聚合到主进程
+            # 使用 reduce 将每个进程的损失值聚合到主进程
             loss_reduced = ls['k_recon_loss_combined']
             
             running_loss += loss_reduced.item()
@@ -202,7 +202,7 @@ class TrainerKInterpolator(TrainerAbstract):
 
             # 更新tqdm显示信息
             # Log the detailed information
-            if i % 20 ==0:
+            if i % 50 ==0:
                 print(
                     f"Epoch: [{epoch}] [{i + 1}/{len(self.train_loader)}] eta: {str(eta)} "
                     f"lr: {current_lr:.6f} loss: {loss_reduced.item():.4f} ({running_loss / (i + 1):.4f}) "
@@ -218,6 +218,7 @@ class TrainerKInterpolator(TrainerAbstract):
         # torch.Size([118, 18, 192, 192]) torch.complex64
         # print('run_test-ooutt-shape:',out.shape, out.dtype)
         self.network.eval()
+        psnr_values = []  # 新增：用于收集所有PSNR值的列表
         with torch.no_grad():
             for i, (kspace, coilmaps, sampling_mask) in enumerate(self.test_loader):
                 kspace,coilmaps,sampling_mask = kspace.to(device), coilmaps.to(device), sampling_mask.to(device)
@@ -240,10 +241,17 @@ class TrainerKInterpolator(TrainerAbstract):
                 out[i] = kspace_complex
 
                 ls = self.eval_criterion([kspace_complex], ref_kspace, im_recon, ref_img, kspace_mask=sampling_mask, mode='test')
-
+                # 收集每个样本的PSNR值
+                psnr_values.append(ls['psnr'].item())  # 修改：记录原始PSNR值
                 self.logger.update_metric_item('val/k_recon_loss', ls['k_recon_loss'].item()/len(self.test_loader))
                 self.logger.update_metric_item('val/recon_loss', ls['photometric'].item()/len(self.test_loader))
                 self.logger.update_metric_item('val/psnr', ls['psnr'].item()/len(self.test_loader))
+            # 计算统计量 均值和方差
+            psnr_mean = np.mean(psnr_values)
+            psnr_var = np.var(psnr_values)
+            # 打印结果
+            print(f'\nkgin_base_vista_r12 Validation PSNR - Mean: {psnr_mean:.4f} ± {np.sqrt(psnr_var):.4f} | Variance: {psnr_var:.4f}')
+            
             print('...', out.shape, out.dtype)
             out = out.cpu().data.numpy()
             # np.save('out.npy', out)
@@ -252,7 +260,7 @@ class TrainerKInterpolator(TrainerAbstract):
             # np.save('out_kgin_base_0108.npy', out)
             # 尝试保存数组到文件，如果文件已存在则覆盖
             try:
-                np.save('out_kgin_base_0118_r12.npy', out)
+                np.save('out_kgin_base_0319_r12.npy', out)
             except OSError as e:
                 print(f"An error occurred: {e}")
             self.logger.update_best_eval_results(self.logger.get_metric_value('val/psnr'))

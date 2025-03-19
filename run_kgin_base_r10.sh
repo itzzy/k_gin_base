@@ -20,10 +20,10 @@ which python3
 which nvcc
 nvidia-smi
 
-export CUDA_VISIBLE_DEVICES=0
+# export CUDA_VISIBLE_DEVICES=0
 
 wandb offline
 
 #/data0/zhiyong/code/github/itzzy_git/k_gin_base/train_kgin_base_r10.py
 #/data0/zhiyong/code/github/itzzy_git/k_gin_base/config_kgin_base_r10.yaml
-python train_kgin_base_r12.py --config config_kgin_base_r12.yaml
+python train_kgin_base_r10.py --config config_kgin_base_r10.yaml
