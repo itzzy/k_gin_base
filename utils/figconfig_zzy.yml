@@ -1,0 +1,20 @@
+my_config:
+  reference_file: /data0/zhiyong/code/github/itzzy_git/k_gin_base/utils/base/label.npy
+  comparison_files:
+    - /data0/zhiyong/code/github/itzzy_git/k_gin_base/converted_images/out_kgin_kv_r8_recon.npy
+    - /data0/zhiyong/code/github/itzzy_git/k_gin_base/converted_images/out_kgin_base_1209_r8_recon.npy
+    - /data0/zhiyong/code/github/itzzy_git/k_gin_base/output/dccnn/dccnn_acc_8_merge.npy
+    - /data0/zhiyong/code/github/itzzy_git/k_gin_base/output/ls/ls_acc_8_merge.npy
+  comparison_titles:
+    - KGIN-KV
+    - KGIN-BASE
+    - DC-CNN
+    - Least Squares
+
+  # 维度参数
+  slice_index: 60        # 切片维度 [0-117]
+  time_index: 8         # 时间维度 [0-17]
+  y_profile_index: 96    # 纵剖面Y轴位置 [0-191]
+  roi_coordinates: [80, 80, 160, 160]  # [x1, y1, x2, y2]
+  display_range: [0, 1.0]
+  error_display_range: [0, 0.3]

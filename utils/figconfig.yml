@@ -1,8 +1,8 @@
 default:  # ideal to show the temporal blurring effect of binning, but spatial details are not that much.
-  reference_directory: none
+  reference_directory: none #无参考图像
   # reference_directory: results/kcl_cmr/nufft_t20
   # reference_directory: results/kcl_cmr/grasp_t40/     # Reference image directory, set to none if there is no reference
-  comparison_directories:                         # Comparison results directories, can add arbitrary number of comparisons
+  comparison_directories:   #比较方法路径       # Comparison results directories, can add arbitrary number of comparisons
     - results/kcl_cmr_bak/nufft_t80
     - results/kcl_cmr_bak/nufft_t40
     - results/kcl_cmr_bak/nufft_t20
@@ -12,7 +12,7 @@ default:  # ideal to show the temporal blurring effect of binning, but spatial d
     # - results/kcl_cmr/subspace_inr_t80                # The last one is the proposed method, and if the sizes of the comparison directories are different, the others will be center cropped to the size of the reference
     - results/kcl_cmr_bak/subspace_inr                # The last one is the proposed method, and if the sizes of the comparison directories are different, the others will be center cropped to the size of the reference
     - results/kcl_cmr_bak/subspace_inr_t40                # The last one is the proposed method, and if the sizes of the comparison directories are different, the others will be center cropped to the size of the reference
-  comparison_titles:                              # Titles for each comparison result
+  comparison_titles:                # Titles for each comparison result # 方法名称
     - NUFFT (10 spokes/bin)
     - NUFFT (20 spokes/bin)
     - NUFFT (40 spokes/bin)
@@ -21,10 +21,10 @@ default:  # ideal to show the temporal blurring effect of binning, but spatial d
     - GRASP (40 spokes/bin)
     - Proposed (binning-free)
     - Proposed (binning-freem 40t)
-  case_id: CINE_S4_GN_GN                        # Case identifier
+  case_id: CINE_S4_GN_GN                        # Case identifier # 病例ID
   # case_id: CINE_S4_GN_GN                          # Case identifier
-  phase_index: 20                                  # The phase (frame) to be shown in the figure
-  y_profile_index: 77                              # The x-t profile at which y index
+  phase_index: 20                       # The phase (frame) to be shown in the figure # 显示的时间帧
+  y_profile_index: 77                   # The x-t profile at which y index # X-T剖面的Y坐标
   roi_coordinates: [40, 55, 110, 125]              # The zoomed ROI area
   poi_coordinates: [95, 65]                        # The point of interest (POI) coordinates within the ROI, [x, y], increase x to the right and y to the bottom
   arrow_direction: [-5, 5]                          # The direction of the POI arrow, [-1, -1] points to the right bottom.
