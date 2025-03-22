@@ -11,11 +11,34 @@ my_config:
     - DcCNN
     - L+S
 
-  # 维度参数
-  slice_index: 80        # 切片维度 [0-117]
-  time_index: 0         # 时间维度 [0-17]
-  y_profile_index: 96    # 纵剖面Y轴位置 [0-191]
-  # roi_coordinates: [80, 80, 160, 160]  # [x1, y1, x2, y2]
+
+# 图像参数
+  slice_index: 80        # [0-117]
+  time_index: 0         # [0-17]
+  display_range: [0.0, 1.0]
+  error_display_range: [0.0, 0.3]
+  brightness_factor: 3   # 亮度增强因子
+
+  # ROI处理参数
   roi_coordinates: [70, 70, 150, 150]  # [x1, y1, x2, y2]
-  display_range: [0, 1.0]
-  error_display_range: [0, 0.3]
+  roi_processing:
+    target_size: [192, 192]  # 输出尺寸
+    interpolation_order: 3    # 插值阶数(0-5)
+  # 维度参数
+  # slice_index: 80        # 切片维度 [0-117]
+  # time_index: 0         # 时间维度 [0-17]
+  # y_profile_index: 96    # 纵剖面Y轴位置 [0-191]
+  # # roi_coordinates: [80, 80, 160, 160]  # [x1, y1, x2, y2]
+  # # roi_coordinates: [80, 85, 165, 165]  # [x1, y1, x2, y2]
+  # roi_coordinates: [70, 70, 150, 150]  # [x1, y1, x2, y2]
+  # display_range: [0, 1.0]
+  # error_display_range: [0, 0.3]
+
+  # 维度参数
+  # slice_index: 80        # 切片维度 [0-117]
+  # time_index: 0         # 时间维度 [0-17]
+  # y_profile_index: 96    # 纵剖面Y轴位置 [0-191]
+  # # roi_coordinates: [80, 80, 160, 160]  # [x1, y1, x2, y2]
+  # roi_coordinates: [70, 70, 150, 150]  # [x1, y1, x2, y2]
+  # display_range: [0, 1.0]
+  # error_display_range: [0, 0.3]
