@@ -15,6 +15,7 @@ my_config:
   slice_index: 80        # 切片维度 [0-117]
   time_index: 0         # 时间维度 [0-17]
   y_profile_index: 96    # 纵剖面Y轴位置 [0-191]
-  roi_coordinates: [80, 80, 160, 160]  # [x1, y1, x2, y2]
+  # roi_coordinates: [80, 80, 160, 160]  # [x1, y1, x2, y2]
+  roi_coordinates: [70, 70, 150, 150]  # [x1, y1, x2, y2]
   display_range: [0, 1.0]
   error_display_range: [0, 0.3]
