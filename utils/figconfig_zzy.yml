@@ -1,19 +1,33 @@
 my_config:
   reference_file: /data0/zhiyong/code/github/itzzy_git/k_gin_base/utils/base/label.npy
   comparison_files:
+  # ##r=8
     - /data0/zhiyong/code/github/itzzy_git/k_gin_base/converted_images/out_kgin_kv_r8_recon.npy
     - /data0/zhiyong/code/github/itzzy_git/k_gin_base/converted_images/out_kgin_base_1209_r8_recon.npy
     - /data0/zhiyong/code/github/itzzy_git/k_gin_base/output/dccnn/dccnn_acc_8_merge.npy
     - /data0/zhiyong/code/github/itzzy_git/k_gin_base/output/ls/ls_acc_8_merge.npy
+    ##r=10
+    # - /data0/zhiyong/code/github/itzzy_git/k_gin_base/converted_images/out_kgin_kv_0118_r10_recon.npy
+    # - /data0/zhiyong/code/github/itzzy_git/k_gin_base/converted_images/out_kgin_base_0118_r10_recon.npy
+    # - /data0/zhiyong/code/github/itzzy_git/k_gin_base/output/dccnn/dccnn_acc_10_merge.npy
+    # - /data0/zhiyong/code/github/itzzy_git/k_gin_base/output/ls/ls_acc_10_merge.npy
+  
+    ##r=12
+    # - /data0/zhiyong/code/github/itzzy_git/k_gin_base/converted_images/out_kgin_kv_0118_r12_recon.npy
+    # - /data0/zhiyong/code/github/itzzy_git/k_gin_base/converted_images/out_kgin_base_0118_r12_recon.npy
+    # - /data0/zhiyong/code/github/itzzy_git/k_gin_base/output/dccnn/dccnn_acc_12_merge.npy
+    # - /data0/zhiyong/code/github/itzzy_git/k_gin_base/output/ls/ls_acc_12_merge.npy
   comparison_titles:
-    - KGIN-KV
-    - KGIN-BASE
+    # - KGIN-KV
+    - Proposed
+    - k-GIN
     - DcCNN
     - L+S
 
 
 # 图像参数
-  slice_index: 80        # [0-117]
+  # slice_index: 80        # [0-117]
+  slice_index: 92        # [0-117]
   time_index: 0         # [0-17]
   display_range: [0.0, 1.0]
   error_display_range: [0.0, 0.3]
