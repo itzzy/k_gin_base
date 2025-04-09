@@ -52,15 +52,15 @@ class TrainerAbstract:
         self.num_epochs = config.training.num_epochs if config.general.only_infer is False else 1
 
         # data
-        train_ds = CINE2DT(config=config.data, mode='train')
+        # train_ds = CINE2DT(config=config.data, mode='train')
         # train_ds = CINE2DT(config=config.data, mode='val')
         test_ds = CINE2DT(config=config.data, mode='val')
         # 测试数据分位训练集:测试集 = 8:2 计算训练集和测试集的大小
-        # total_size = len(test_ds)
-        # train_size = int(0.8 * total_size)  # 80% 用于训练
-        # test_size = total_size - train_size  # 20% 用于测试
-        # # 使用 random_split 划分数据集
-        # train_ds, test_ds = random_split(test_ds, [train_size, test_size])
+        total_size = len(test_ds)
+        train_size = int(0.8 * total_size)  # 80% 用于训练
+        test_size = total_size - train_size  # 20% 用于测试
+        # 使用 random_split 划分数据集
+        train_ds, test_ds = random_split(test_ds, [train_size, test_size])
         self.train_loader = DataLoader(dataset=train_ds, num_workers=config.training.num_workers, drop_last=False,
                                     pin_memory=True, batch_size=config.training.batch_size, shuffle=True)
         self.test_loader = DataLoader(dataset=test_ds, num_workers=2, drop_last=False, batch_size=1, shuffle=False)
@@ -216,8 +216,8 @@ class TrainerKInterpolator(TrainerAbstract):
             #     f"time: {elapsed_time / (i + 1):.4f} data: 0.0002 max mem: {max_memory:.0f}"
             # )
             # Log the detailed information
-            # if i % 20 ==0:
-            if i % 50 ==0:
+            if i % 20 ==0:
+            # if i % 50 ==0:
                 print(
                     f"Epoch: [{epoch}] [{i + 1}/{len(self.train_loader)}] eta: {str(eta)} "
                     f"lr: {current_lr:.6f} loss: {loss_reduced.item():.4f} ({running_loss / (i + 1):.4f}) "

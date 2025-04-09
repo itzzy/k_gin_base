@@ -5,10 +5,13 @@ my_config:
     - /data0/zhiyong/code/github/itzzy_git/k_gin_base/converted_images/out_kgin_vista_r8_0219_recon.npy
     # - /data0/zhiyong/code/github/itzzy_git/k_gin_base/output/crnn/crnn_acc_8_merge.npy
     - /data0/zhiyong/code/github/itzzy_git/k_gin_base/output/dccnn/dccnn_acc_8_merge.npy
-    - /data0/zhiyong/code/github/itzzy_git/k_gin_base/output/ls/ls_acc_8_merge.npy
+    # - /data0/zhiyong/code/github/itzzy_git/k_gin_base/output/ls/ls_acc_8_merge.npy
+    # - /data0/zhiyong/code/github/itzzy_git/k_gin_base/output/ls/ls_mc_acc_12_merge.npy
+    - /data0/zhiyong/code/github/itzzy_git/k_gin_base/output/ls/ls_mc_acc_8_merge.npy
+
   comparison_titles:
-    - KGIN-KV
-    - KGIN-BASE
+    - Proposed
+    -  k-GIN
     # - CRNN
     - DcCNN
     - L+S
@@ -16,6 +19,7 @@ my_config:
   # 图像参数
   slice_index: 80        # [0-117]
   time_index: 0         # [0-17]
+  kx_index: 0           # [0-117]
   display_range: [0.0, 1.0]
   error_display_range: [0.0, 0.3]
   brightness_factor: 3   # 亮度增强因子
