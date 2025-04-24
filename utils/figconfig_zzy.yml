@@ -2,8 +2,8 @@ my_config:
   reference_file: /data0/zhiyong/code/github/itzzy_git/k_gin_base/utils/base/label.npy
   comparison_files:
   # ##r=8
-    - /data0/zhiyong/code/github/itzzy_git/k_gin_base/converted_images/out_kgin_kv_r8_recon.npy
-    - /data0/zhiyong/code/github/itzzy_git/k_gin_base/converted_images/out_kgin_base_1209_r8_recon.npy
+    # - /data0/zhiyong/code/github/itzzy_git/k_gin_base/converted_images/out_kgin_kv_r8_recon.npy
+    # - /data0/zhiyong/code/github/itzzy_git/k_gin_base/converted_images/out_kgin_base_1209_r8_recon.npy
     # - /data0/zhiyong/code/github/itzzy_git/k_gin_base/converted_images/out_kgin_kv_r6_recon.npy
     # - /data0/zhiyong/code/github/itzzy_git/k_gin_base/converted_images/out_kgin_base_r6_recon.npy
     # - /data0/zhiyong/code/github/itzzy_git/k_gin_base/output/dccnn/dccnn_acc_8_merge.npy
