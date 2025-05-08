@@ -1,5 +1,5 @@
 general:
-  exp_name: test_kgin_base_r4
+  exp_name: test_kgin_base_r6
   gpus: 3
   wandb_entity: 'itzzy'
   debug: False
@@ -15,14 +15,14 @@ data:
   # train_maps: '/data0/chentao/data/LplusSNet/data/20coil/csm_cine_multicoil_training.npy' # a demo
   # val_subjs: '/data0/chentao/data/LplusSNet/data/20coil/k_cine_multicoil_test.npy' # a demo
   # val_maps: '/data0/chentao/data/LplusSNet/data/20coil/csm_cine_multicoil_test.npy' # a demo
-  train_subjs: '/opt/data/private/zhiyong/data/cine_base_data/k_cine_multicoil_training.npy' # a demo
-  train_maps: '/opt/data/private/zhiyong/data/cine_base_data/csm_cine_multicoil_training.npy' # a demo
-  val_subjs: '/opt/data/private/zhiyong/data/cine_base_data/k_cine_multicoil_test.npy' # a demo
-  val_maps: '/opt/data/private/zhiyong/data/cine_base_data/csm_cine_multicoil_test.npy' # a demo
   # train_subjs: '/nfs/zzy/data/k_gin_data/k_cine_multicoil_training.npy' # a demo
   # train_maps: '/nfs/zzy/data/k_gin_data/csm_cine_multicoil_training.npy' # a demo
   # val_subjs: '/nfs/zzy/data/k_gin_data/k_cine_multicoil_test.npy' # a demo
   # val_maps: '/nfs/zzy/data/k_gin_data/csm_cine_multicoil_test.npy' # a demo
+  train_subjs: '/opt/data/private/zhiyong/data/cine_base_data/k_cine_multicoil_training.npy' # a demo
+  train_maps: '/opt/data/private/zhiyong/data/cine_base_data/csm_cine_multicoil_training.npy' # a demo
+  val_subjs: '/opt/data/private/zhiyong/data/cine_base_data/k_cine_multicoil_test.npy' # a demo
+  val_maps: '/opt/data/private/zhiyong/data/cine_base_data/csm_cine_multicoil_test.npy' # a demo
   # train_subjs: '/public/home/macong/zzy/data/k_cine_multicoil_training.npy' # a demo
   # train_maps: '/public/home/macong/zzy/data/csm_cine_multicoil_training.npy' # a demo
   # val_subjs: '/public/home/macong/zzy/data/k_cine_multicoil_test.npy' # a demo
@@ -33,12 +33,11 @@ data:
   # mask_root: '/data0/zhiyong/code/github/k-gin/masks/VISTA/e_192x18_acs4_acs_lines4_R8.mat'
   # mask_root: '/nfs/zzy/code/k_gin_base/masks/VISTA/e_192x18_acs4_acs_lines4_R6.mat'
   # mask_root: '/nfs/zzy/code/k_gin_base/masks/VISTA/e_192x18_acs4_acs_lines4_R10.mat'
-  # mask_root: 'masks/VISTA/e_192x18_acs4_acs_lines4_R10.mat'
-  mask_root: 'masks/VISTA/e_192x18_acs4_R4.mat'
+  mask_root: 'masks/VISTA/e_192x18_acs4_acs_lines4_R6.mat'
   # data_root: '/nfs/zzy/data/k_gin_data'
   # data_root: '/data0/chentao/data/LplusSNet/data/20coil'
-  data_root: '/opt/data/private/zhiyong/data/cine_base_data'
   # data_root: '/public/home/macong/zzy/data'
+  data_root: '/opt/data/private/zhiyong/data/cine_base_data'
   mask_pattern: VISTA
   acc_rate: *acc_rate
   dtype: complex128
@@ -46,8 +45,8 @@ data:
   only_infer: *only_infer
 
 training:
+  # num_epochs: &epochs 300
   num_epochs: &epochs 300
-  # num_epochs: &epochs 1
   # warmup_epoch: 0
   warmup_epoch: 30
   batch_size: 5
@@ -55,9 +54,9 @@ training:
   num_workers: 5
   # num_workers: 1
   # restore_ckpt: '/nfs/zzy/code/k_gin_base/experiments/test_k_gin'
-  # restore_ckpt: '/data0/zhiyong/code/github/itzzy_git/k_gin_base/experiments/test_kgin_base_r4'
-  restore_ckpt: '/opt/data/private/zhiyong/code/github/itzzy_git/k_gin_base/experiments/test_kgin_base_r4_0505'
-  # restore_ckpt: '/public/home/macong/zzy/data/code/k_gin_base/experiments/test_kgin_base_r4'
+  # restore_ckpt: '/data0/zhiyong/code/github/itzzy_git/k_gin_base/experiments/test_k_gin'
+  restore_ckpt: '/opt/data/private/zhiyong/code/github/itzzy_git/k_gin_base/experiments/test_kgin_base_r6_0504'
+  # restore_ckpt: '/public/home/macong/zzy/data/code/k_gin_base/experiments/test_kgin_base_r6'
   restore_training: False
   # restore_training: True
   use_mixed_precision: True  # differ # for complexCNN this must be set False

@@ -1,5 +1,5 @@
 general:
-  exp_name: test_kgin_base_r4
+  exp_name: test_kgin_base_front_zzy
   gpus: 3
   wandb_entity: 'itzzy'
   debug: False
@@ -23,6 +23,7 @@ data:
   # train_maps: '/nfs/zzy/data/k_gin_data/csm_cine_multicoil_training.npy' # a demo
   # val_subjs: '/nfs/zzy/data/k_gin_data/k_cine_multicoil_test.npy' # a demo
   # val_maps: '/nfs/zzy/data/k_gin_data/csm_cine_multicoil_test.npy' # a demo
+
   # train_subjs: '/public/home/macong/zzy/data/k_cine_multicoil_training.npy' # a demo
   # train_maps: '/public/home/macong/zzy/data/csm_cine_multicoil_training.npy' # a demo
   # val_subjs: '/public/home/macong/zzy/data/k_cine_multicoil_test.npy' # a demo
@@ -33,8 +34,7 @@ data:
   # mask_root: '/data0/zhiyong/code/github/k-gin/masks/VISTA/e_192x18_acs4_acs_lines4_R8.mat'
   # mask_root: '/nfs/zzy/code/k_gin_base/masks/VISTA/e_192x18_acs4_acs_lines4_R6.mat'
   # mask_root: '/nfs/zzy/code/k_gin_base/masks/VISTA/e_192x18_acs4_acs_lines4_R10.mat'
-  # mask_root: 'masks/VISTA/e_192x18_acs4_acs_lines4_R10.mat'
-  mask_root: 'masks/VISTA/e_192x18_acs4_R4.mat'
+  mask_root: 'masks/VISTA/e_192x18_acs4_acs_lines4_R8.mat'
   # data_root: '/nfs/zzy/data/k_gin_data'
   # data_root: '/data0/chentao/data/LplusSNet/data/20coil'
   data_root: '/opt/data/private/zhiyong/data/cine_base_data'
@@ -46,18 +46,19 @@ data:
   only_infer: *only_infer
 
 training:
-  num_epochs: &epochs 300
-  # num_epochs: &epochs 1
-  # warmup_epoch: 0
-  warmup_epoch: 30
-  batch_size: 5
+  # num_epochs: &epochs 300
+  num_epochs: &epochs 1
+  warmup_epoch: 0
+  # warmup_epoch: 30
+  batch_size: 4
   # num_workers: 4
-  num_workers: 5
+  num_workers: 4
   # num_workers: 1
   # restore_ckpt: '/nfs/zzy/code/k_gin_base/experiments/test_k_gin'
-  # restore_ckpt: '/data0/zhiyong/code/github/itzzy_git/k_gin_base/experiments/test_kgin_base_r4'
-  restore_ckpt: '/opt/data/private/zhiyong/code/github/itzzy_git/k_gin_base/experiments/test_kgin_base_r4_0505'
-  # restore_ckpt: '/public/home/macong/zzy/data/code/k_gin_base/experiments/test_kgin_base_r4'
+  # /opt/data/private/zhiyong/code/github/itzzy_git/k_gin_base
+  # restore_ckpt: '/data0/zhiyong/code/github/itzzy_git/k_gin_base/experiments/test_kgin_base_r8_zzy'
+  restore_ckpt: '/opt/data/private/zhiyong/code/github/itzzy_git/k_gin_base/experiments/test_kgin_base_front_zzy'
+  # restore_ckpt: '/public/home/macong/zzy/data/code/k_gin_base/experiments/test_kgin_r10'
   restore_training: False
   # restore_training: True
   use_mixed_precision: True  # differ # for complexCNN this must be set False
@@ -67,6 +68,7 @@ network:
   which: KInterpolator
   KInterpolator:
     img_size: [18,192,192]
+    # img_size: [65,192,192]
     patch_size: 4
     embed_dim: 512
     depth: 12

@@ -83,6 +83,7 @@ utils/result_img/
 # masks/VISTA/shear_grid_18_192_192_sample_n_4_acc_8.mat
 masks/VISTA/vista_18_192_192_acc_8.mat
 converted_images/
+front_output/
 
 # Django stuff:
 *.log

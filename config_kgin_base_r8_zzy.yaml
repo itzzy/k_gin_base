@@ -11,10 +11,14 @@ general:
 
 data:
   # csv file path
-  train_subjs: '/data0/chentao/data/LplusSNet/data/20coil/k_cine_multicoil_training.npy' # a demo
-  train_maps: '/data0/chentao/data/LplusSNet/data/20coil/csm_cine_multicoil_training.npy' # a demo
-  val_subjs: '/data0/chentao/data/LplusSNet/data/20coil/k_cine_multicoil_test.npy' # a demo
-  val_maps: '/data0/chentao/data/LplusSNet/data/20coil/csm_cine_multicoil_test.npy' # a demo
+  # train_subjs: '/data0/chentao/data/LplusSNet/data/20coil/k_cine_multicoil_training.npy' # a demo
+  # train_maps: '/data0/chentao/data/LplusSNet/data/20coil/csm_cine_multicoil_training.npy' # a demo
+  # val_subjs: '/data0/chentao/data/LplusSNet/data/20coil/k_cine_multicoil_test.npy' # a demo
+  # val_maps: '/data0/chentao/data/LplusSNet/data/20coil/csm_cine_multicoil_test.npy' # a demo
+  train_subjs: '/opt/data/private/zhiyong/data/cine_base_data/k_cine_multicoil_training.npy' # a demo
+  train_maps: '/opt/data/private/zhiyong/data/cine_base_data/csm_cine_multicoil_training.npy' # a demo
+  val_subjs: '/opt/data/private/zhiyong/data/cine_base_data/k_cine_multicoil_test.npy' # a demo
+  val_maps: '/opt/data/private/zhiyong/data/cine_base_data/csm_cine_multicoil_test.npy' # a demo
   # train_subjs: '/nfs/zzy/data/k_gin_data/k_cine_multicoil_training.npy' # a demo
   # train_maps: '/nfs/zzy/data/k_gin_data/csm_cine_multicoil_training.npy' # a demo
   # val_subjs: '/nfs/zzy/data/k_gin_data/k_cine_multicoil_test.npy' # a demo
@@ -32,7 +36,8 @@ data:
   # mask_root: '/nfs/zzy/code/k_gin_base/masks/VISTA/e_192x18_acs4_acs_lines4_R10.mat'
   mask_root: 'masks/VISTA/e_192x18_acs4_acs_lines4_R8.mat'
   # data_root: '/nfs/zzy/data/k_gin_data'
-  data_root: '/data0/chentao/data/LplusSNet/data/20coil'
+  # data_root: '/data0/chentao/data/LplusSNet/data/20coil'
+  data_root: '/opt/data/private/zhiyong/data/cine_base_data'
   # data_root: '/public/home/macong/zzy/data'
   mask_pattern: VISTA
   acc_rate: *acc_rate
@@ -45,12 +50,14 @@ training:
   # num_epochs: &epochs 1
   # warmup_epoch: 0
   warmup_epoch: 30
-  batch_size: 2
+  batch_size: 5
   # num_workers: 4
-  num_workers: 2
+  num_workers: 5
   # num_workers: 1
   # restore_ckpt: '/nfs/zzy/code/k_gin_base/experiments/test_k_gin'
-  restore_ckpt: '/data0/zhiyong/code/github/itzzy_git/k_gin_base/experiments/test_kgin_base_r8_zzy'
+  # /opt/data/private/zhiyong/code/github/itzzy_git/k_gin_base
+  # restore_ckpt: '/data0/zhiyong/code/github/itzzy_git/k_gin_base/experiments/test_kgin_base_r8_zzy'
+  restore_ckpt: '/opt/data/private/zhiyong/code/github/itzzy_git/k_gin_base/experiments/test_kgin_base_r8_zzy_0501'
   # restore_ckpt: '/public/home/macong/zzy/data/code/k_gin_base/experiments/test_kgin_r10'
   restore_training: False
   # restore_training: True
