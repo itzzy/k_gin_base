@@ -26,14 +26,14 @@ os.environ['PYTORCH_CUDA_ALLOC_CONF'] = 'max_split_size_mb:256'
 # os.environ['CUDA_VISIBLE_DEVICES'] = '6'  # 指定使用 GPU 1 和 GPU 4
 os.environ['CUDA_VISIBLE_DEVICES'] = '0'  # 指定使用 GPU 1 和 GPU 4
 
-# 设置环境变量 CUDA_VISIBLE_DEVICES  0-5(nvidia--os) 2-6 3-7 6--3
+# 设置环境变量 CUDA_VISIBLE_DEVICES  0-5(nvidia--os) 2-6 3-7
 # os.environ['CUDA_VISIBLE_DEVICES'] = '0,1'  # 指定使用 GPU 1 和 GPU 4
 # os.environ['CUDA_VISIBLE_DEVICES'] = '4,7'  # 指定使用 GPU 7 和 GPU 3
 # os.environ['CUDA_VISIBLE_DEVICES'] = '1,4'  # 指定使用 GPU 4 和 GPU 7
 # os.environ['CUDA_VISIBLE_DEVICES'] = '1,4'  # 指定使用 GPU 4 和 GPU 7
 # os.environ['CUDA_VISIBLE_DEVICES'] = '1,3'  # 指定使用 GPU 4 和 GPU 6
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-# nohup python train_kgin_base_r10_zzy.py --config config_kgin_base_r10_zzy.yaml > log_kgin_base_r10_0517_zzy.txt 2>&1 &
+# nohup python train_kgin_base_r12_zzy.py --config config_kgin_base_r12_zzy.yaml > log_kgin_base_r12_0511.txt 2>&1 &
 
 class TrainerAbstract:
     def __init__(self, config):
@@ -41,7 +41,7 @@ class TrainerAbstract:
         super().__init__()
         self.config = config.general
         self.debug = config.general.debug
-        if self.debug: config.general.exp_name = 'test_kgin_r10_zzy'
+        if self.debug: config.general.exp_name = 'test_kgin_base_r12_zzy'
         self.experiment_dir = os.path.join(config.general.exp_save_root, config.general.exp_name)
         pathlib.Path(self.experiment_dir).mkdir(parents=True, exist_ok=True)
 
@@ -80,6 +80,19 @@ class TrainerAbstract:
         if config.training.restore_training: self.load_model(config.training)
         self.loss_scaler = NativeScaler()
 
+    # def load_model(self, args):
+
+    #     if os.path.isdir(args.restore_ckpt):
+    #         args.restore_ckpt = max(glob.glob(f'{args.restore_ckpt}/*.pth'), key=os.path.getmtime)
+    #     ckpt = torch.load(args.restore_ckpt)
+    #     self.network.load_state_dict(ckpt['model'], strict=True)
+
+    #     print("Resume checkpoint %s" % args.restore_ckpt)
+    #     if args.restore_training:
+    #         self.optimizer.load_state_dict(ckpt['optimizer_state_dict'])
+    #         self.start_epoch = ckpt['epoch'] + 1
+    #         # self.loss_scaler.load_state_dict(ckpt['scaler'])
+    #         print("With optim & sched!")
     def load_model(self, args):
         if os.path.isdir(args.restore_ckpt):
             # args.restore_ckpt = max(glob.glob(f'{args.resture_ckpt}/*.pth'), key=os.path.getmtime)
@@ -249,7 +262,7 @@ class TrainerKInterpolator(TrainerAbstract):
             psnr_mean = np.mean(psnr_values)
             psnr_var = np.var(psnr_values)
             # 打印结果
-            print(f'\nkgin_base_r10_zzy Validation PSNR - Mean: {psnr_mean:.4f} ± {np.sqrt(psnr_var):.4f} | Variance: {psnr_var:.4f}')
+            print(f'\nkgin_base_r12 Validation PSNR - Mean: {psnr_mean:.4f} ± {np.sqrt(psnr_var):.4f} | Variance: {psnr_var:.4f}')
             
             print('...', out.shape, out.dtype)
             out = out.cpu().data.numpy()
@@ -259,7 +272,7 @@ class TrainerKInterpolator(TrainerAbstract):
             # np.save('out_kgin_base_0108.npy', out)
             # 尝试保存数组到文件，如果文件已存在则覆盖
             try:
-                np.save('out_kgin_base_r10_zzy_0517.npy', out)
+                np.save('out_kgin_base_r12_zzy_0511.npy', out)
             except OSError as e:
                 print(f"An error occurred: {e}")
             self.logger.update_best_eval_results(self.logger.get_metric_value('val/psnr'))

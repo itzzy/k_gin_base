@@ -34,6 +34,7 @@ os.environ['CUDA_VISIBLE_DEVICES'] = '0'  # 指定使用 GPU 1 和 GPU 4
 # os.environ['CUDA_VISIBLE_DEVICES'] = '1,3'  # 指定使用 GPU 4 和 GPU 6
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 # nohup python train_kgin_base_r6_zzy.py --config config_kgin_base_r6_zzy.yaml > log_kgin_base_r6_0504.txt 2>&1 &
+# nohup python train_kgin_base_r6_zzy.py --config config_kgin_base_r6_zzy.yaml > log_kgin_base_r6_0607.txt 2>&1 &
 
 class TrainerAbstract:
     def __init__(self, config):
@@ -271,7 +272,8 @@ class TrainerKInterpolator(TrainerAbstract):
             # np.save('out_kgin_base_0108.npy', out)
             # 尝试保存数组到文件，如果文件已存在则覆盖
             try:
-                np.save('out_kgin_base_r6_0504.npy', out)
+                # np.save('out_kgin_base_r6_0504.npy', out)
+                np.save('out_kgin_base_r6_0607.npy', out)
             except OSError as e:
                 print(f"An error occurred: {e}")
             self.logger.update_best_eval_results(self.logger.get_metric_value('val/psnr'))

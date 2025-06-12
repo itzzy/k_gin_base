@@ -28,6 +28,7 @@ MANIFEST
 wandb/
 experiments/
 dataset/__pycache__
+utils/testzerofilling
 
 # PyInstaller
 #  Usually these files are written by a python script from a template

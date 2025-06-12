@@ -7,10 +7,20 @@ my_config:
     # - /data0/zhiyong/code/github/itzzy_git/k_gin_base/converted_images/out_kgin_base_1209_r8_recon.npy
     # - /data0/zhiyong/code/github/itzzy_git/k_gin_base/converted_images/out_kgin_kv_r6_recon.npy
     # - /data0/zhiyong/code/github/itzzy_git/k_gin_base/converted_images/out_kgin_base_r6_recon.npy
-    - /opt/data/private/zhiyong/code/github/itzzy_git/k_gin_base/converted_images/out_kgin_kv_r6_recon.npy
-    - /opt/data/private/zhiyong/code/github/itzzy_git/k_gin_base/converted_images/out_kgin_base_r6_recon.npy
-    - /opt/data/private/zhiyong/code/github/itzzy_git/k_gin_base/converted_images/out_kgin_kv_0118_r10_recon.npy
-    - /opt/data/private/zhiyong/code/github/itzzy_git/k_gin_base/converted_images/out_kgin_base_0118_r10_recon.npy
+    # - /opt/data/private/zhiyong/code/github/itzzy_git/k_gin_base/converted_images/out_kgin_kv_r6_recon.npy
+    # - /opt/data/private/zhiyong/code/github/itzzy_git/k_gin_base/converted_images/out_kgin_kv_0507_r6_zzy_recon.npy
+    # - /opt/data/private/zhiyong/code/github/itzzy_git/k_gin_base/converted_images/out_kgin_base_r6_recon.npy
+    # - /opt/data/private/zhiyong/code/github/itzzy_git/k_gin_base/converted_images/out_kgin_base_r6_0304_recon.npy
+    # - /opt/data/private/zhiyong/code/github/itzzy_git/k_gin_base/converted_images/out_kgin_base_r6_0504_recon.npy
+    # - /opt/data/private/zhiyong/code/github/itzzy_git/k_gin_base/converted_images/out_kgin_base_r8_zzy_0503_recon.npy
+    # - /opt/data/private/zhiyong/code/github/itzzy_git/k_gin_base/converted_images/out_kgin_base_0324_r8_recon.npy
+    # - /opt/data/private/zhiyong/code/github/itzzy_git/k_gin_base/converted_images/out_kgin_base_r6_0504_recon.npy
+    
+    # - /opt/data/private/zhiyong/code/github/itzzy_git/k_gin_base/converted_images/out_kgin_base_0118_r10_recon.npy
+    # - /opt/data/private/zhiyong/code/github/itzzy_git/k_gin_base/converted_images/out_kgin_kv_0118_r10_recon.npy
+    # - /opt/data/private/zhiyong/code/github/itzzy_git/k_gin_base/converted_images/out_kgin_base_r6_0504_recon.npy
+    # - /opt/data/private/zhiyong/code/github/itzzy_git/k_gin_base/converted_images/out_kgin_kv_r6_recon.npy
+
 
     # - /opt/data/private/zhiyong/code/github/itzzy_git/k_gin_base/converted_images/out_kgin_kv_0324_r8_recon.npy
     # - /opt/data/private/zhiyong/code/github/itzzy_git/k_gin_base/converted_images/out_kgin_base_0324_r8_recon.npy
@@ -33,12 +43,20 @@ my_config:
     # - /opt/data/private/zhiyong/code/github/itzzy_git/k_gin_base/converted_images/out_kgin_base_0118_r12_recon.npy
     # - /opt/data/private/zhiyong/code/github/itzzy_git/k_gin_base/output/dccnn/dccnn_acc_12_merge.npy
     # - /opt/data/private/zhiyong/code/github/itzzy_git/k_gin_base/output/ls/ls_acc_12_merge.npy
+
+    - /opt/data/private/zhiyong/code/github/itzzy_git/k_gin_base/converted_images/out_kgin_base_0404_r10_zzy_recon.npy
+    - /opt/data/private/zhiyong/code/github/itzzy_git/k_gin_base/converted_images/out_kgin_kv_0404_r10_zzy_recon.npy
+    # - /opt/data/private/zhiyong/code/github/itzzy_git/k_gin_base/converted_images/out_kgin_base_0118_r12_recon.npy
+    # - /opt/data/private/zhiyong/code/github/itzzy_git/k_gin_base/converted_images/out_kgin_kv_0118_r12_recon.npy
+    - /opt/data/private/zhiyong/code/github/itzzy_git/k_gin_base/converted_images/out_kgin_base_1209_r8_recon.npy
+    - /opt/data/private/zhiyong/code/github/itzzy_git/k_gin_base/converted_images/out_kgin_kv_r8_recon.npy
+
   comparison_titles:
     # - KGIN-KV
-    - Proposed
-    - k-GIN
-    - DcCNN
     - L+S
+    - DcCNN
+    - k-GIN
+    - Proposed
 
 
 # 图像参数
