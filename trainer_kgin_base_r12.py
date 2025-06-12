@@ -260,7 +260,8 @@ class TrainerKInterpolator(TrainerAbstract):
             # np.save('out_kgin_base_0108.npy', out)
             # 尝试保存数组到文件，如果文件已存在则覆盖
             try:
-                np.save('out_kgin_base_0319_r12.npy', out)
+                # np.save('out_kgin_base_0319_r12.npy', out)
+                np.save('out_kgin_base_r12_0612.npy', out)
             except OSError as e:
                 print(f"An error occurred: {e}")
             self.logger.update_best_eval_results(self.logger.get_metric_value('val/psnr'))
